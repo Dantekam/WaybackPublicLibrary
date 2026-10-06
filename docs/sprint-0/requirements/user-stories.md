@@ -1,13 +1,12 @@
 # WPL User Stories
 
-This portion contains initial user stories thought of during
-Sprint 0 requirements analysis. The priorities may be adjusted 
-throughout future sprints as currently they should reflect the
-clients feedback and may be biased.
+This document contains the initial user stories identified during
+Sprint 0 requirements analysis. The priorities reflect current client
+feedback and may be adjusted throughout future sprints as requirements
+are further clarified.
 
-The current prioritization and user stories are based around
-completing a full cycle of checking out and returning an item
-to the WPL.
+The initial user stories and priorities focus on completing a full
+cycle of checking out and returning an item at WPL.
 
 ---
 
@@ -131,7 +130,7 @@ processed later.**
 
 ---
 
-## Later Functionality
+## Lower Functionality
 
 ### User Story-08 - Renew Patron Membership
 **Priority:** Medium

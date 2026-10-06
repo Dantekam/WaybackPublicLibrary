@@ -35,3 +35,4 @@ during Sprint 0 requirements analysis meeting.
   priorities for initial development.
 - Adding collection items will be handled by a librarian when that
   functionality is addressed.
+- Login/Logout is out of scope for the whole project.
