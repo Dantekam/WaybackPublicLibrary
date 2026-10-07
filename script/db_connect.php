@@ -1,6 +1,6 @@
 <?php
 // establish the database connection using PDO
-$host = 'ada.cis.uncw.edu/phpmyadmin';
+$host = 'ada.cis.uncw.edu';
 $db = 'project3';
 $user = 'project3';
 $charset = 'utf8mb4';
@@ -14,7 +14,7 @@ $options = [
 ];
 
 try {
-	$pdo = new PDO($dsn, $user, $pasee, $options);
+	$pdo = new PDO($dsn, $user, $pass, $options);
 } catch (\PDOException $e) {
 	die("Database connection failed.");
 }
