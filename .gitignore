@@ -1,0 +1,2 @@
+# Ignore the password file
+*.db_pass.php
