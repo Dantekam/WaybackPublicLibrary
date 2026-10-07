@@ -5,8 +5,18 @@ Sprint 0 requirements analysis. The priorities reflect current client
 feedback and may be adjusted throughout future sprints as requirements
 are further clarified.
 
-The initial user stories and priorities focus on completing a full
-cycle of checking out and returning an item at WPL.
+The initial user stories are grouped priorities focused on completing a full
+cycle of checking out and returning an item at WPL based on the epics of 
+both Checkout and Checkin.
+
+## Sprint Planning Note
+
+These user stories represent the initial product backlog identified during
+Sprint 0 requirements analysis. They are not all Sprint 0 implementation
+commitments. Sprint 0 focuses on establishing the project foundation and
+proof of concept. Functional user stories will be selected and implemented
+incrementally during Sprints 1–3 based on priority, effort, dependencies,
+and continued client feedback.
 
 ---
 
