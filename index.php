@@ -1,3 +1,6 @@
+<?php
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -25,7 +28,7 @@
             <div class="lookup-card">
                 <h3>Find Patron</h3>
 
-                <form method="GET" action="index.php">
+                <form method="GET" action="script/index.php">
                     <label for="patronID">Patron ID</label>
 
                     <div class="input-row">
@@ -60,7 +63,7 @@
             <div class="lookup-card">
                 <h3>Find Item</h3>
 
-                <form method="GET" action="index.php">
+                <form method="GET" action="script/index.php">
                     <label for="itemCopyID">Item Copy ID</label>
 
                     <div class="input-row">
@@ -120,7 +123,7 @@
                 </p>
             </div>
 
-            <form method="POST" action="index.php">
+            <form method="POST" action="script/index.php">
 
                 <input type="hidden" name="patronID" value="">
                 <input type="hidden" name="itemCopyID" value="">
