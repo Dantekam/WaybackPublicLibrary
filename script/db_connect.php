@@ -19,10 +19,12 @@ try {
 	die("Database connection failed.");
 }
 
-if ($searchTerm !== '') {
-	$likeTerm = '%' . $searchTerm . '%';
-	$sql = "SELECT * FROM users WHERE book LIKE :search1 OR author LIKE :search2";
-
-}
+return [
+    $host,
+    $db,
+    $user,
+    $charset,
+    $pass
+];
 
 ?>

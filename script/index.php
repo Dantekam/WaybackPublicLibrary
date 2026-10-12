@@ -13,21 +13,23 @@ $dbError         = '';
 // ------------------------------------------------------------
 // 2. DATABASE CONNECTION
 // ------------------------------------------------------------
-$host       = 'localhost';
-$dbname     = 'project3';
-$username   = 'project3';
-$dbPassword = require __DIR__ . '/.db_pass.php';
+// $host       = 'localhost';
+// $dbname     = 'project3';
+// $username   = 'project3';
+// $dbPassword = require __DIR__ . '/.db_pass.php';
+[$host, $dbname, $username, $dbPassword] = require __DIR__ . '/db_connect.php';
 
-try {
-    $pdo = new PDO(
-        "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
-        $username,
-        $dbPassword,
-        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-    );
-} catch (PDOException $e) {
-    $dbError = "Database connection failed: " . $e->getMessage();
-}
+// try {
+//     $pdo = new PDO(
+//         "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
+//         $username,
+//         $dbPassword,
+//         [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+//     );
+// } catch (PDOException $e) {
+//     $dbError = "Database connection failed: " . $e->getMessage();
+// }
+
 
 // ------------------------------------------------------------
 // 3. HANDLE THE SEARCH  (only if $pdo exists)
