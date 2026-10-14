@@ -1,33 +1,20 @@
 <?php
+// ------------------------------------------------------------
+// 0. Startup Error's
+// ------------------------------------------------------------
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
+
 // ------------------------------------------------------------
 // 1. INITIALIZE VARIABLES
 // ------------------------------------------------------------
-$searchTerm      = '';
-$searchPerformed = false;
-$results         = [];
-$dbError         = '';
+[$searchTerm, $searchPerformed, $results, $dbError] = ['', false, [], '']
 
 // ------------------------------------------------------------
 // 2. DATABASE CONNECTION
 // ------------------------------------------------------------
-$host       = 'localhost';
-$dbname     = 'project3';
-$username   = 'project3';
-$dbPassword = require __DIR__ . '/.db_pass.php';
-
-try {
-    $pdo = new PDO(
-        "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
-        $username,
-        $dbPassword,
-        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-    );
-} catch (PDOException $e) {
-    $dbError = "Database connection failed: " . $e->getMessage();
-}
+[$host, $dbname, $username, $dbPassword] = require __DIR__ . '/db_connect.php';
 
 // ------------------------------------------------------------
 // 3. HANDLE THE SEARCH  (only if $pdo exists)

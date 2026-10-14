@@ -1,9 +1,10 @@
 <?php
 // establish the database connection using PDO
-$host = 'ada.cis.uncw.edu';
-$db = 'project3';
-$user = 'project3';
-$charset = 'utf8mb4';
+// $host = 'ada.cis.uncw.edu';
+// $db = 'project3';
+// $user = 'project3';
+// $charset = 'utf8mb4';
+[$host, $db, $user, $charset] = ['ada.cis.uncw.edu', 'project3', 'project3', 'utf8mb4'];
 $pass = require __DIR__ . '/.db_pass.php';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
@@ -19,10 +20,12 @@ try {
 	die("Database connection failed.");
 }
 
-if ($searchTerm !== '') {
-	$likeTerm = '%' . $searchTerm . '%';
-	$sql = "SELECT * FROM users WHERE book LIKE :search1 OR author LIKE :search2";
-
-}
+return [
+    $host,
+    $db,
+    $user,
+    $charset,
+    $pass
+];
 
 ?>
