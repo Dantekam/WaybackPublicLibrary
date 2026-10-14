@@ -25,10 +25,11 @@
 
         <section class="lookup-container">
 
+            <!-- ===== Find Patron ===== -->
             <div class="lookup-card">
                 <h3>Find Patron</h3>
 
-                <form method="GET" action="script/index.php">
+                <form id="patronForm">
                     <label for="patronID">Patron ID</label>
 
                     <div class="input-row">
@@ -41,29 +42,29 @@
                             required
                         >
 
-                        <button type="submit" name="action" value="findPatron">
-                            Find Patron
-                        </button>
+                        <button type="submit">Find Patron</button>
                     </div>
                 </form>
 
-                <div class="result-box">
+                <div class="result-box" id="patronResult">
                     <p>
                         <strong>Name:</strong>
-                        <span>--</span>
+                        <span data-field="name">--</span>
                     </p>
 
                     <p>
                         <strong>Membership Expiration:</strong>
-                        <span>--</span>
+                        <span data-field="expiration">--</span>
                     </p>
+                    <p class="error" data-field="error" hidden></p>
                 </div>
             </div>
 
+            <!-- ===== Find Item ===== -->
             <div class="lookup-card">
                 <h3>Find Item</h3>
 
-                <form method="GET" action="script/index.php">
+                <form id="itemForm">
                     <label for="itemCopyID">Item Copy ID</label>
 
                     <div class="input-row">
@@ -76,32 +77,34 @@
                             required
                         >
 
-                        <button type="submit" name="action" value="findItem">
+                        <button type="submit">
                             Find Item
                         </button>
                     </div>
                 </form>
 
-                <div class="result-box">
+                <div class="result-box" id="itemResult">
                     <p>
                         <strong>Item Copy ID:</strong>
-                        <span>--</span>
+                        <span data-field="itemCopyID">--</span>
                     </p>
 
                     <p>
                         <strong>Item Type:</strong>
-                        <span>--</span>
+                        <span data-field="itemType">--</span>
                     </p>
 
                     <p>
                         <strong>Status:</strong>
-                        <span>--</span>
+                        <span data-field="status">--</span>
                     </p>
+                    <p class="error" data-field="error" hidden></p>
                 </div>
             </div>
 
         </section>
 
+        <!-- ===== Checkout Summary ===== -->
         <section class="checkout-card">
 
             <div class="checkout-summary">
@@ -109,39 +112,34 @@
 
                 <p>
                     <strong>Selected Patron:</strong>
-                    <span>--</span>
+                    <span data-field="patronName">--</span>
                 </p>
 
                 <p>
                     <strong>Item Copy ID:</strong>
-                    <span>--</span>
+                    <span data-field="itemCopyID">--</span>
                 </p>
 
                 <p>
                     <strong>Item Type:</strong>
-                    <span>--</span>
+                    <span data-field="itemType">--</span>
                 </p>
+                <p class="error" data-field="error" hidden></p>
             </div>
 
-            <form method="POST" action="script/index.php">
+            <form id="checkoutForm">
 
                 <input type="hidden" name="patronID" value="">
                 <input type="hidden" name="itemCopyID" value="">
 
-                <button
-                    class="checkout-button"
-                    type="submit"
-                    name="action"
-                    value="recordCheckout"
-                >
-                    Record Checkout
-                </button>
+                <button class="checkout-button" type="submit">Record Checkout</button>
 
             </form>
 
         </section>
 
-        <section class="confirmation-card">
+        <!-- ===== Confirmation ===== -->
+        <section class="confirmation-card" id="confirmationCard" hidden>
 
             <h3>Checkout Recorded</h3>
 
@@ -149,35 +147,37 @@
 
                 <p>
                     <strong>Checkout ID:</strong>
-                    <span>--</span>
+                    <span data-field="checkoutID">--</span>
                 </p>
 
                 <p>
                     <strong>Patron:</strong>
-                    <span>--</span>
+                    <span data-field="patron">--</span>
                 </p>
 
                 <p>
                     <strong>Item Copy ID:</strong>
-                    <span>--</span>
+                    <span data-field="itemCopyID">--</span>
                 </p>
 
                 <p>
                     <strong>Checkout Date:</strong>
-                    <span>--</span>
+                    <span data-field="checkoutDate">--</span>
                 </p>
 
                 <p>
                     <strong>Due Date:</strong>
-                    <span>--</span>
+                    <span data-field="dueDate">--</span>
                 </p>
+                <p class="error" data-field="error" hidden></p>
 
             </div>
 
-            <button type="button">Done</button>
+            <button type="button" id="doneButton">Done</button>
 
         </section>
-
+        
+        <!-- ===== Current Checkouts Table ===== -->
         <section class="current-checkouts">
 
             <div class="table-heading">
@@ -216,6 +216,8 @@
         </section>
 
     </main>
+
+    <script src="js/checkout.js" defer></script>
 
 </body>
 
