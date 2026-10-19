@@ -1,6 +1,3 @@
-<?php
-?>
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -21,6 +18,7 @@
 
         <section class="page-heading">
             <h2>Checkout a Library Item</h2>
+            <button>Add Item</button>
         </section>
 
         <section class="lookup-container">
