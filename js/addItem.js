@@ -46,7 +46,7 @@
         submitBtn.disabled = true;
 
         try {
-            const res = await fetch('addItem.php', {
+            const res = await fetch('script/addItem.php', {
                 method: 'POST',
                 body: new FormData(form),
             });
@@ -60,7 +60,7 @@
             }
 
             msg.textContent =
-                `Added item copy #${json.item.itemCopyID} (${json.item.itemType}, ${json.item.status}).`;
+                `Added item copy #${json.item.itemCopyID} ${json.item.title} ${json.item.itemID} ${json.item.shelfLocation} ${json.item.branchID} (${json.item.itemType}, ${json.item.status}).`;
             msg.classList.add('success');
 
             setTimeout(() => {

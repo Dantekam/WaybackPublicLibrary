@@ -12,13 +12,24 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $itemCopyID = $_POST['itemCopyID'] ?? '';
-$itemType   = trim($_POST['itemType'] ?? '');
-$status     = trim($_POST['status'] ?? 'Open');
+$title          = trim($_POST['title'] ?? '');
+$itemID         = trim($_POST['itemID'] ?? '');
+$shelfLocation  = trim($_POST['shelfLocation'] ?? '');
+$branchID       = trim($_POST['branchID'] ?? '');
+$itemType       = trim($_POST['itemType'] ?? '');
+$status         = trim($_POST['status'] ?? 'Open');
 
 // Validate itemCopyID
 if ($itemCopyID === '' || !ctype_digit((string)$itemCopyID)) {
     http_response_code(400);
     echo json_encode(['ok' => false, 'error' => 'Please enter a valid numeric Item Copy ID.']);
+    exit;
+}
+
+// Validate title
+if ($title === '') {
+    http_response_code(400);
+    echo json_encode(['ok' => false, 'error' => 'Please enter an title.']);
     exit;
 }
 
@@ -38,7 +49,6 @@ if (!in_array($status, $allowedStatuses, true)) {
 }
 
 try {
-    // Optional: check for duplicate ID first for a friendlier error
     $check = $pdo->prepare('SELECT 1 FROM Item_Copy WHERE ItemCopyID = ?');
     $check->execute([(int)$itemCopyID]);
     if ($check->fetchColumn()) {
@@ -48,22 +58,33 @@ try {
     }
 
     $stmt = $pdo->prepare(
-        'INSERT INTO Item_Copy (ItemCopyID, ItemType, Status)
-         VALUES (?, ?, ?)'
+        'INSERT INTO Item_Copy (ItemCopyID, Title, ItemID, ShelfLocationCode, BranchID, ItemType, Status)
+         VALUES (?, ?, ?, ?, ?, ?, ?)'
     );
-    $stmt->execute([(int)$itemCopyID, $itemType, $status]);
+    $stmt->execute([
+        (int)$itemCopyID,
+        $title,
+        (int)$itemID,
+        $shelfLocation,
+        (int)$branchID,
+        $itemType,
+        $status,
+    ]);
 
     echo json_encode([
         'ok' => true,
         'item' => [
-            'itemCopyID' => (int)$itemCopyID,
-            'itemType'   => $itemType,
-            'status'     => $status,
-            'available'  => strcasecmp($status, 'Open') === 0,
+            'itemCopyID'    => (int)$itemCopyID,
+            'title'         => $title,
+            'itemID'        => (int)$itemID,
+            'shelfLocation' => $shelfLocation,
+            'branchID'      => (int)$branchID,
+            'itemType'      => $itemType,
+            'status'        => $status,
+            'available'     => strcasecmp($status, 'Open') === 0,
         ],
     ]);
 } catch (PDOException $e) {
-    // 23000 = integrity constraint violation (e.g. duplicate primary key)
     if ($e->getCode() === '23000') {
         http_response_code(409);
         echo json_encode(['ok' => false, 'error' => 'An item copy with that ID already exists.']);
@@ -71,6 +92,6 @@ try {
     }
 
     http_response_code(500);
-    echo json_encode(['ok' => false, 'error' => 'Insert failed.']);
+    echo json_encode(['ok' => false, 'error' => 'Insert failed: ' . $e->getMessage()]);
     exit;
 }
