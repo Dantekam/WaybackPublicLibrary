@@ -72,7 +72,7 @@
                             type="number"
                             id="itemCopyID"
                             name="itemCopyID"
-                            min="1"
+                            min="1000"
                             placeholder="Enter Item Copy ID"
                             required
                         >
@@ -224,7 +224,7 @@
             <form id="addItemForm">
                 <label>
                     Item Copy ID
-                    <input type="number" name="itemCopyID" required min="1" step="1">
+                    <input type="number" name="itemCopyID" required min="1000" step="1">
                 </label>
                 <label>
                     Title
@@ -232,11 +232,11 @@
                 </label>
                 <label>
                     Item ID
-                    <input type="number" name="itemID" required min="1" step="1">
+                    <input type="number" name="itemID" required min="3000" step="1">
                 </label>
                 <label>
                     Branch ID
-                    <input type="number" name="branchID" required min="1" step="1">
+                    <input type="number" name="branchID" required min="1000" step="1">
                 </label>
                 <label>
                     Shelf location
