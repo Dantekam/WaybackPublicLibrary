@@ -1,6 +1,5 @@
 <?php
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -21,6 +20,7 @@
 
         <section class="page-heading">
             <h2>Checkout a Library Item</h2>
+            <button id="addItemBtn" type="button">Add Item</button>
         </section>
 
         <section class="lookup-container">
@@ -72,7 +72,7 @@
                             type="number"
                             id="itemCopyID"
                             name="itemCopyID"
-                            min="1"
+                            min="1000"
                             placeholder="Enter Item Copy ID"
                             required
                         >
@@ -217,6 +217,54 @@
 
     </main>
 
+    <!-- ===== Add Item ===== -->
+    <div id="addItemModal" class="modal" hidden>
+        <div class="modal-content">
+            <h3>Add Item Copy</h3>
+            <form id="addItemForm">
+                <label>
+                    Item Copy ID
+                    <input type="number" name="itemCopyID" required min="1000" step="1">
+                </label>
+                <label>
+                    Title
+                    <input type="text" name="title" required maxlength="50">
+                </label>
+                <label>
+                    Item ID
+                    <input type="number" name="itemID" required min="3000" step="1">
+                </label>
+                <label>
+                    Branch ID
+                    <input type="number" name="branchID" required min="1000" step="1">
+                </label>
+                <label>
+                    Shelf location
+                    <input type="text" name="shelfLocation" required maxlength="50">
+                </label>
+                <label>
+                    Item Type
+                    <input type="text" name="itemType" required maxlength="50">
+                </label>
+                <label>
+                    Status
+                    <select name="status">
+                        <option value="Open" selected>Open</option>
+                        <option value="CheckedOut">Checked Out</option>
+                        <option value="Maintenance">Maintenance</option>
+                        <option value="Available">Available</option>
+                    </select>
+                </label>
+                <p id="addItemMsg" class="msg"></p>
+                <div class="modal-actions">
+                    <button type="button" id="cancelAddItem">Cancel</button>
+                    <button type="submit">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/addItem.js" defer></script>
     <script src="js/checkout.js" defer></script>
 
 </body>

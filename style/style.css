@@ -38,13 +38,63 @@ body {
     padding: 18px;
     text-align: center;
     background-color: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
     border: 1px solid #aaa;
     border-radius: 6px;
+}
+
+.page-heading button {
+    margin-left: auto;
 }
 
 .page-heading h2 {
     margin: 0;
 }
+
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+.modal[hidden] { display: none; }
+
+.modal-content {
+    background: white;
+    padding: 24px;
+    border-radius: 8px;
+    border: 1px solid #aaa;
+    min-width: 320px;
+    max-width: 90vw;
+}
+.modal-content h3 { margin-top: 0; }
+.modal-content label {
+    display: block;
+    margin-bottom: 12px;
+}
+.modal-content input,
+.modal-content select {
+    display: block;
+    width: 100%;
+    padding: 6px 8px;
+    margin-top: 4px;
+    box-sizing: border-box;
+}
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+}
+.msg { min-height: 1.2em; font-size: 0.9em; }
+.msg.error   { color: #b00020; }
+.msg.success { color: #0a7d28; }
 
 
 /* Patron and Item Lookup */
