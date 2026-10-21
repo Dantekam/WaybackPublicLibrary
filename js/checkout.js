@@ -119,6 +119,8 @@
       }
       updateSummary();
     } catch (err) {
+      state.item = null;
+      updateSummary();
       setError(itemResult, 'Network error — please try again.');
     }
   });
