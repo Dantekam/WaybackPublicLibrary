@@ -176,7 +176,7 @@
             <button type="button" id="doneButton">Done</button>
 
         </section>
-        
+
         <!-- ===== Current Checkouts Table ===== -->
         <section class="current-checkouts">
 
@@ -199,7 +199,7 @@
                         </tr>
                     </thead>
 
-                    <tbody>
+                    <tbody id="checkoutsBody">
 
                         <tr class="empty-row">
                             <td colspan="6">
