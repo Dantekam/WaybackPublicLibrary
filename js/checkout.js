@@ -261,13 +261,13 @@
         ? patron.eligibilityReasons
         : [];
 
-      const eligibility = patron.eligible
-        ? 'Eligible'
-        : 'Denied — ' + (
-            reasons.length
-              ? reasons.join(', ')
-              : 'Patron is not eligible'
-          );
+    const eligibility = patron.eligible
+      ? 'Eligible'
+      : 'Ineligible — ' + (
+          reasons.length
+            ? reasons.join(', ')
+            : 'Patron does not meet checkout requirements'
+        );
 
       setField(
         patronResult,
