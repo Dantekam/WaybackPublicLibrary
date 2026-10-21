@@ -2,231 +2,533 @@
   'use strict';
 
   // Helpers
-  const $  = (sel, root = document) => root.querySelector(sel);
-
-  async function fetchJSON(url, options = {}) {
-    const res = await fetch(url, options);
-    const data = await res.json().catch(() => ({
-      ok: false,
-      error: 'Server returned an invalid response.',
-    }));
-    return data;
-  }
+  const $ = (selector, root = document) =>
+    root ? root.querySelector(selector) : null;
 
   function setField(box, field, value) {
-    const el = $(`[data-field="${field}"]`, box);
-    if (el) el.textContent = value;
-  }
+    const element = $(`[data-field="${field}"]`, box);
 
-  function setError(box, message) {
-    const err = $('[data-field="error"]', box);
-    if (!err) return;
-    if (message) {
-      err.textContent = message;
-      err.hidden = false;
-    } else {
-      err.textContent = '';
-      err.hidden = true;
+    if (element) {
+      element.textContent = value ?? '--';
     }
   }
 
-  function escapeHTML(s) {
-    return String(s).replace(/[&<>"']/g, (ch) => ({
-      '&': '&amp;', '<': '&lt;', '>': '&gt;',
-      '"': '&quot;', "'": '&#39;',
-    }[ch]));
+  function setError(box, message) {
+    const element = $('[data-field="error"]', box);
+
+    if (!element) return;
+
+    element.textContent = message || '';
+    element.hidden = !message;
+  }
+
+  async function fetchJSON(url, options = {}) {
+    const response = await fetch(url, {
+      cache: 'no-store',
+      ...options
+    });
+
+    const text = await response.text();
+
+    let data;
+
+    try {
+      data = JSON.parse(text);
+    } catch (error) {
+      console.error('Invalid server response:', text);
+
+      throw new Error(
+        'The server returned an invalid response.'
+      );
+    }
+
+    if (!data || typeof data !== 'object') {
+      throw new Error('Unexpected server response.');
+    }
+
+    return data;
+  }
+
+  function clearPatronDisplay() {
+    setField(patronResult, 'name', '--');
+    setField(patronResult, 'expiration', '--');
+  }
+
+  function clearItemDisplay() {
+    setField(itemResult, 'itemCopyID', '--');
+    setField(itemResult, 'itemType', '--');
+    setField(itemResult, 'status', '--');
+  }
+
+  function showCheckoutError(message) {
+    setError(checkoutSummary, message);
+  }
+
+  // Elements
+  const patronForm = $('#patronForm');
+  const patronResult = $('#patronResult');
+
+  const itemForm = $('#itemForm');
+  const itemResult = $('#itemResult');
+
+  const checkoutForm = $('#checkoutForm');
+  const checkoutSummary = $('.checkout-summary');
+
+  const confirmationCard = $('#confirmationCard');
+  const checkoutsBody = $('#checkoutsBody');
+
+  const doneButton = $('#doneButton');
+
+  if (
+    !patronForm ||
+    !patronResult ||
+    !itemForm ||
+    !itemResult ||
+    !checkoutForm ||
+    !checkoutSummary
+  ) {
+    console.error(
+      'Checkout initialization failed: required HTML elements are missing.'
+    );
+    return;
   }
 
   // State
   const state = {
     patron: null,
-    item:   null,
+    item: null,
+    submitting: false,
+    patronRequest: 0,
+    itemRequest: 0
   };
 
-  // Find Patron
-  const patronForm   = $('#patronForm');
-  const patronResult = $('#patronResult');
+  const submitButton = checkoutForm.querySelector(
+    'button[type="submit"], input[type="submit"]'
+  );
 
-  patronForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
+  // Checkout Summary
+  function updateSummary() {
+    setField(
+      checkoutSummary,
+      'patronName',
+      state.patron ? state.patron.name : '--'
+    );
+
+    setField(
+      checkoutSummary,
+      'itemCopyID',
+      state.item ? state.item.itemCopyID : '--'
+    );
+
+    setField(
+      checkoutSummary,
+      'itemType',
+      state.item ? state.item.itemType : '--'
+    );
+
+    const patronInput = checkoutForm.elements.namedItem('patronID');
+    const itemInput = checkoutForm.elements.namedItem('itemCopyID');
+
+    if (patronInput) {
+      patronInput.value = state.patron
+        ? state.patron.patronID
+        : '';
+    }
+
+    if (itemInput) {
+      itemInput.value = state.item
+        ? state.item.itemCopyID
+        : '';
+    }
+
+    setError(checkoutSummary, '');
+  }
+
+  function setSubmitting(submitting) {
+    state.submitting = submitting;
+
+    if (submitButton) {
+      submitButton.disabled = submitting;
+
+      if ('value' in submitButton &&
+          submitButton.tagName === 'INPUT') {
+        submitButton.value = submitting
+          ? 'Recording...'
+          : 'Record Checkout';
+      } else {
+        submitButton.textContent = submitting
+          ? 'Recording...'
+          : 'Record Checkout';
+      }
+    }
+  }
+
+  // Find Patron
+  patronForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const requestNumber = ++state.patronRequest;
+
+    state.patron = null;
+    clearPatronDisplay();
+    updateSummary();
     setError(patronResult, '');
 
-    const patronID = patronForm.patronID.value.trim();
-    if (!patronID) return;
+    const patronInput = patronForm.elements.namedItem('patronID');
+    const patronID = patronInput
+      ? patronInput.value.trim()
+      : '';
+
+    if (!patronID) {
+      setError(patronResult, 'Please enter a Patron ID.');
+      return;
+    }
 
     try {
       const data = await fetchJSON(
         `script/findPatron.php?patronID=${encodeURIComponent(patronID)}`
       );
 
-      if (!data.ok) {
-        state.patron = null;
-        setField(patronResult, 'name', '--');
-        setField(patronResult, 'expiration', '--');
-        setError(patronResult, data.error || 'Patron not found.');
-        updateSummary();
+      // Ignore older responses if another search was started.
+      if (requestNumber !== state.patronRequest) return;
+
+      if (!data.ok || !data.patron) {
+        setError(
+          patronResult,
+          data.error || 'Patron not found.'
+        );
         return;
       }
 
       state.patron = data.patron;
+
       setField(patronResult, 'name', data.patron.name);
-      setField(patronResult, 'expiration', data.patron.expiration);
+      setField(
+        patronResult,
+        'expiration',
+        data.patron.expiration
+      );
 
       if (data.patron.expired) {
-        setError(patronResult, 'Warning: this membership has expired.');
+        setError(
+          patronResult,
+          'This membership has expired. Checkout is not permitted.'
+        );
       }
+
       updateSummary();
-    } catch (err) {
+
+    } catch (error) {
+      if (requestNumber !== state.patronRequest) return;
+
+      console.error('Patron lookup failed:', error);
+
       state.patron = null;
+      clearPatronDisplay();
       updateSummary();
-      setError(patronResult, 'Network error — please try again.');
+
+      setError(
+        patronResult,
+        'Unable to retrieve patron information. Please try again.'
+      );
     }
   });
 
-  // Find Item 
-  const itemForm   = $('#itemForm');
-  const itemResult = $('#itemResult');
+  // Find Item
+  itemForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
 
-  itemForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
+    const requestNumber = ++state.itemRequest;
+
+    state.item = null;
+    clearItemDisplay();
+    updateSummary();
     setError(itemResult, '');
 
-    const itemCopyID = itemForm.itemCopyID.value.trim();
-    if (!itemCopyID) return;
+    const itemInput = itemForm.elements.namedItem('itemCopyID');
+    const itemCopyID = itemInput
+      ? itemInput.value.trim()
+      : '';
+
+    if (!itemCopyID) {
+      setError(itemResult, 'Please enter an Item Copy ID.');
+      return;
+    }
 
     try {
       const data = await fetchJSON(
         `script/findItem.php?itemCopyID=${encodeURIComponent(itemCopyID)}`
       );
 
-      if (!data.ok) {
-        state.item = null;
-        setField(itemResult, 'itemCopyID', '--');
-        setField(itemResult, 'itemType', '--');
-        setField(itemResult, 'status', '--');
-        setError(itemResult, data.error || 'Item not found.');
-        updateSummary();
+      if (requestNumber !== state.itemRequest) return;
+
+      if (!data.ok || !data.item) {
+        setError(
+          itemResult,
+          data.error || 'Item copy not found.'
+        );
         return;
       }
 
       state.item = data.item;
-      setField(itemResult, 'itemCopyID', data.item.itemCopyID);
-      setField(itemResult, 'itemType', data.item.itemType);
-      setField(itemResult, 'status', data.item.status);
+
+      setField(
+        itemResult,
+        'itemCopyID',
+        data.item.itemCopyID
+      );
+
+      setField(
+        itemResult,
+        'itemType',
+        data.item.itemType
+      );
+
+      setField(
+        itemResult,
+        'status',
+        data.item.status
+      );
 
       if (!data.item.available) {
-        setError(itemResult, 'This copy is not available for checkout.');
+        setError(
+          itemResult,
+          'This copy is not available for checkout.'
+        );
       }
+
       updateSummary();
-    } catch (err) {
+
+    } catch (error) {
+      if (requestNumber !== state.itemRequest) return;
+
+      console.error('Item lookup failed:', error);
+
       state.item = null;
+      clearItemDisplay();
       updateSummary();
-      setError(itemResult, 'Network error — please try again.');
+
+      setError(
+        itemResult,
+        'Unable to retrieve item information. Please try again.'
+      );
     }
   });
 
-  // Checkout Summary 
-  const checkoutSummary = $('.checkout-summary');
-  const checkoutForm    = $('#checkoutForm');
+  // Confirmation Display
+  function showConfirmation(checkout) {
+    if (!confirmationCard) {
+      console.warn('Confirmation card not found.');
+      return;
+    }
 
-  function updateSummary() {
-    setField(checkoutSummary, 'patronName', state.patron ? state.patron.name : '--');
-    setField(checkoutSummary, 'itemCopyID', state.item ? state.item.itemCopyID : '--');
-    setField(checkoutSummary, 'itemType',   state.item ? state.item.itemType   : '--');
+    setField(
+      confirmationCard,
+      'checkoutID',
+      checkout.checkoutID
+    );
 
-    checkoutForm.patronID.value   = state.patron ? state.patron.patronID : '';
-    checkoutForm.itemCopyID.value = state.item   ? state.item.itemCopyID : '';
+    setField(
+      confirmationCard,
+      'patron',
+      checkout.patron
+    );
 
-    setError(checkoutSummary, '');
+    setField(
+      confirmationCard,
+      'itemCopyID',
+      checkout.itemCopyID
+    );
+
+    setField(
+      confirmationCard,
+      'checkoutDate',
+      checkout.checkoutDate
+    );
+
+    setField(
+      confirmationCard,
+      'dueDate',
+      checkout.dueDate
+    );
+
+    confirmationCard.hidden = false;
   }
 
-  // Record Checkout 
-  const confirmationCard = $('#confirmationCard');
-  const checkoutsBody    = $('#checkoutsBody');
+  // Current Checkouts Table
+  function addCheckoutRow(checkout) {
+    if (!checkoutsBody) {
+      console.warn('Current Checkouts table body not found.');
+      return;
+    }
 
-  checkoutForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    setError(checkoutSummary, '');
+    const emptyRow = checkoutsBody.querySelector('.empty-row');
+
+    if (emptyRow) {
+      emptyRow.remove();
+    }
+
+    const row = document.createElement('tr');
+
+    const values = [
+      checkout.checkoutID,
+      checkout.patron,
+      checkout.itemCopyID,
+      checkout.itemType,
+      checkout.checkoutDate,
+      checkout.dueDate
+    ];
+
+    values.forEach((value) => {
+      const cell = document.createElement('td');
+      cell.textContent = value ?? '--';
+      row.appendChild(cell);
+    });
+
+    checkoutsBody.prepend(row);
+  }
+
+  // Reset After Successful Checkout
+  function resetCheckoutSelection() {
+    ++state.patronRequest;
+    ++state.itemRequest;
+
+    state.patron = null;
+    state.item = null;
+
+    patronForm.reset();
+    itemForm.reset();
+
+    clearPatronDisplay();
+    clearItemDisplay();
+
+    setError(patronResult, '');
+    setError(itemResult, '');
+
+    updateSummary();
+  }
+
+  // Record Checkout
+  checkoutForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    if (state.submitting) return;
+
+    showCheckoutError('');
 
     if (!state.patron || !state.item) {
-      setError(checkoutSummary, 'Please select a patron and an item first.');
+      showCheckoutError(
+        'Please select a patron and an item first.'
+      );
       return;
     }
+
     if (state.patron.expired) {
-      setError(checkoutSummary, 'Cannot check out: patron membership is expired.');
+      showCheckoutError(
+        'Cannot check out: patron membership is expired.'
+      );
       return;
     }
+
     if (!state.item.available) {
-      setError(checkoutSummary, 'Cannot check out: item is not available.');
+      showCheckoutError(
+        'Cannot check out: this item is not available.'
+      );
       return;
     }
 
     const formData = new FormData(checkoutForm);
 
-    try {
-      const data = await fetchJSON('script/recordCheckout.php', {
-        method: 'POST',
-        body: formData,
-      });
+    setSubmitting(true);
 
-      if (!data.ok) {
-        setError(checkoutSummary, data.error || 'Checkout failed.');
-        return;
+    let data;
+
+    // Keep the network request separate from UI rendering.
+    try {
+      data = await fetchJSON('script/recordCheckout.php', {
+        method: 'POST',
+        body: formData
+      });
+    } catch (error) {
+      console.error('Checkout request failed:', error);
+
+      showCheckoutError(
+        'Unable to confirm the checkout result. ' +
+        'Check the database before trying again.'
+      );
+
+      setSubmitting(false);
+      return;
+    }
+
+    if (!data.ok) {
+      showCheckoutError(
+        data.error || 'Checkout was denied.'
+      );
+
+      setSubmitting(false);
+      return;
+    }
+
+    const checkout = data.checkout;
+
+    if (!checkout) {
+      console.error(
+        'Checkout succeeded but the response contains no checkout details.',
+        data
+      );
+
+      showCheckoutError(
+        'Checkout may have been recorded, but the confirmation ' +
+        'details were missing. Check the database.'
+      );
+
+      setSubmitting(false);
+      return;
+    }
+
+    // Reset first so the same selection cannot be submitted again.
+    resetCheckoutSelection();
+    setSubmitting(false);
+
+    try {
+      showConfirmation(checkout);
+      addCheckoutRow(checkout);
+
+      if (confirmationCard &&
+          typeof confirmationCard.scrollIntoView === 'function') {
+        confirmationCard.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
       }
 
-      const c = data.checkout;
+    } catch (error) {
+      console.error(
+        'Checkout recorded, but the interface could not display it:',
+        error
+      );
 
-      // Fill confirmation card
-      setField(confirmationCard, 'checkoutID',   c.checkoutID);
-      setField(confirmationCard, 'patron',       c.patron);
-      setField(confirmationCard, 'itemCopyID',   c.itemCopyID);
-      setField(confirmationCard, 'checkoutDate', c.checkoutDate);
-      setField(confirmationCard, 'dueDate',      c.dueDate);
-      confirmationCard.hidden = false;
-
-      // Add row to current checkouts table
-      addCheckoutRow(c);
-
-      // Reset form and state so the user doesn't double-submit
-      patronForm.reset();
-      itemForm.reset();
-      setField(patronResult, 'name', '--');
-      setField(patronResult, 'expiration', '--');
-      setField(itemResult, 'itemCopyID', '--');
-      setField(itemResult, 'itemType', '--');
-      setField(itemResult, 'status', '--');
-      state.patron = null;
-      state.item   = null;
-      updateSummary();
-
-      // Scroll the confirmation into view
-      confirmationCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    } catch (err) {
-      setError(checkoutSummary, 'Network error — please try again.');
+      showCheckoutError(
+        'Checkout was recorded successfully, but the display ' +
+        'could not be updated. Checkout ID: ' +
+        (checkout.checkoutID ?? 'unknown')
+      );
     }
   });
 
-  // Current Checkouts table 
-  function addCheckoutRow(c) {
-    const emptyRow = checkoutsBody.querySelector('.empty-row');
-    if (emptyRow) emptyRow.remove();
+  // Done Button
+  if (doneButton) {
+    doneButton.addEventListener('click', () => {
+      if (confirmationCard) {
+        confirmationCard.hidden = true;
+      }
 
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${escapeHTML(c.checkoutID)}</td>
-      <td>${escapeHTML(c.patron)}</td>
-      <td>${escapeHTML(c.itemCopyID)}</td>
-      <td>${escapeHTML(c.itemType)}</td>
-      <td>${escapeHTML(c.checkoutDate)}</td>
-      <td>${escapeHTML(c.dueDate)}</td>
-    `;
-    checkoutsBody.prepend(tr);
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    });
   }
-
-  // Done button 
-  $('#doneButton').addEventListener('click', () => {
-    confirmationCard.hidden = true;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  });
 
 })();
