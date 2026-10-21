@@ -1,3 +1,4 @@
+
 (() => {
   'use strict';
 
@@ -49,21 +50,6 @@
     return data;
   }
 
-  function clearPatronDisplay() {
-    setField(patronResult, 'name', '--');
-    setField(patronResult, 'expiration', '--');
-  }
-
-  function clearItemDisplay() {
-    setField(itemResult, 'itemCopyID', '--');
-    setField(itemResult, 'itemType', '--');
-    setField(itemResult, 'status', '--');
-  }
-
-  function showCheckoutError(message) {
-    setError(checkoutSummary, message);
-  }
-
   // Elements
   const patronForm = $('#patronForm');
   const patronResult = $('#patronResult');
@@ -106,6 +92,26 @@
     'button[type="submit"], input[type="submit"]'
   );
 
+  // Clear displayed patron information
+  function clearPatronDisplay() {
+    setField(patronResult, 'name', '--');
+    setField(patronResult, 'expiration', '--');
+    setField(patronResult, 'activeCheckouts', '--');
+    setField(patronResult, 'outstandingFines', '--');
+    setField(patronResult, 'eligibility', '--');
+  }
+
+  // Clear displayed item information
+  function clearItemDisplay() {
+    setField(itemResult, 'itemCopyID', '--');
+    setField(itemResult, 'itemType', '--');
+    setField(itemResult, 'status', '--');
+  }
+
+  function showCheckoutError(message) {
+    setError(checkoutSummary, message);
+  }
+
   // Checkout Summary
   function updateSummary() {
     setField(
@@ -126,8 +132,11 @@
       state.item ? state.item.itemType : '--'
     );
 
-    const patronInput = checkoutForm.elements.namedItem('patronID');
-    const itemInput = checkoutForm.elements.namedItem('itemCopyID');
+    const patronInput =
+      checkoutForm.elements.namedItem('patronID');
+
+    const itemInput =
+      checkoutForm.elements.namedItem('itemCopyID');
 
     if (patronInput) {
       patronInput.value = state.patron
@@ -150,8 +159,10 @@
     if (submitButton) {
       submitButton.disabled = submitting;
 
-      if ('value' in submitButton &&
-          submitButton.tagName === 'INPUT') {
+      if (
+        'value' in submitButton &&
+        submitButton.tagName === 'INPUT'
+      ) {
         submitButton.value = submitting
           ? 'Recording...'
           : 'Record Checkout';
@@ -174,13 +185,18 @@
     updateSummary();
     setError(patronResult, '');
 
-    const patronInput = patronForm.elements.namedItem('patronID');
+    const patronInput =
+      patronForm.elements.namedItem('patronID');
+
     const patronID = patronInput
       ? patronInput.value.trim()
       : '';
 
     if (!patronID) {
-      setError(patronResult, 'Please enter a Patron ID.');
+      setError(
+        patronResult,
+        'Please enter a Patron ID.'
+      );
       return;
     }
 
@@ -189,7 +205,7 @@
         `script/findPatron.php?patronID=${encodeURIComponent(patronID)}`
       );
 
-      // Ignore older responses if another search was started.
+      // Ignore outdated search results.
       if (requestNumber !== state.patronRequest) return;
 
       if (!data.ok || !data.patron) {
@@ -200,21 +216,65 @@
         return;
       }
 
-      state.patron = data.patron;
+      // The updated PHP lookup must return eligibility data.
+      const patron = data.patron;
 
-      setField(patronResult, 'name', data.patron.name);
+      if (
+        typeof patron.activeCheckouts === 'undefined' ||
+        typeof patron.outstandingFines === 'undefined' ||
+        typeof patron.eligible !== 'boolean'
+      ) {
+        setError(
+          patronResult,
+          'Patron eligibility details are missing. ' +
+          'Check that the updated findPatron.php is deployed.'
+        );
+        return;
+      }
+
+      state.patron = patron;
+
+      setField(
+        patronResult,
+        'name',
+        patron.name
+      );
+
       setField(
         patronResult,
         'expiration',
-        data.patron.expiration
+        patron.expiration
       );
 
-      if (data.patron.expired) {
-        setError(
-          patronResult,
-          'This membership has expired. Checkout is not permitted.'
-        );
-      }
+      setField(
+        patronResult,
+        'activeCheckouts',
+        `${patron.activeCheckouts} / ${patron.checkoutLimit ?? 20}`
+      );
+
+      setField(
+        patronResult,
+        'outstandingFines',
+        `$${Number(patron.outstandingFines).toFixed(2)}`
+      );
+
+      const reasons = Array.isArray(patron.eligibilityReasons)
+        ? patron.eligibilityReasons
+        : [];
+
+      const eligibility = patron.eligible
+        ? 'Eligible'
+        : 'Denied — ' + (
+            reasons.length
+              ? reasons.join(', ')
+              : 'Patron is not eligible'
+          );
+
+      setField(
+        patronResult,
+        'eligibility',
+        eligibility
+      );
 
       updateSummary();
 
@@ -245,13 +305,18 @@
     updateSummary();
     setError(itemResult, '');
 
-    const itemInput = itemForm.elements.namedItem('itemCopyID');
+    const itemInput =
+      itemForm.elements.namedItem('itemCopyID');
+
     const itemCopyID = itemInput
       ? itemInput.value.trim()
       : '';
 
     if (!itemCopyID) {
-      setError(itemResult, 'Please enter an Item Copy ID.');
+      setError(
+        itemResult,
+        'Please enter an Item Copy ID.'
+      );
       return;
     }
 
@@ -358,11 +423,14 @@
   // Current Checkouts Table
   function addCheckoutRow(checkout) {
     if (!checkoutsBody) {
-      console.warn('Current Checkouts table body not found.');
+      console.warn(
+        'Current Checkouts table body not found.'
+      );
       return;
     }
 
-    const emptyRow = checkoutsBody.querySelector('.empty-row');
+    const emptyRow =
+      checkoutsBody.querySelector('.empty-row');
 
     if (emptyRow) {
       emptyRow.remove();
@@ -423,9 +491,30 @@
       return;
     }
 
+    // Frontend eligibility check.
+    // The backend still validates everything again.
     if (state.patron.expired) {
       showCheckoutError(
         'Cannot check out: patron membership is expired.'
+      );
+      return;
+    }
+
+    if (!state.patron.eligible) {
+      const reasons = Array.isArray(
+        state.patron.eligibilityReasons
+      )
+        ? state.patron.eligibilityReasons
+        : [];
+
+      showCheckoutError(
+        'Cannot check out: ' +
+        (
+          reasons.length
+            ? reasons.join(', ')
+            : 'patron is not eligible'
+        ) +
+        '.'
       );
       return;
     }
@@ -445,10 +534,13 @@
 
     // Keep the network request separate from UI rendering.
     try {
-      data = await fetchJSON('script/recordCheckout.php', {
-        method: 'POST',
-        body: formData
-      });
+      data = await fetchJSON(
+        'script/recordCheckout.php',
+        {
+          method: 'POST',
+          body: formData
+        }
+      );
     } catch (error) {
       console.error('Checkout request failed:', error);
 
@@ -495,8 +587,10 @@
       showConfirmation(checkout);
       addCheckoutRow(checkout);
 
-      if (confirmationCard &&
-          typeof confirmationCard.scrollIntoView === 'function') {
+      if (
+        confirmationCard &&
+        typeof confirmationCard.scrollIntoView === 'function'
+      ) {
         confirmationCard.scrollIntoView({
           behavior: 'smooth',
           block: 'center'
