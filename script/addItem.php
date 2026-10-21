@@ -1,66 +1,148 @@
 <?php
 header('Content-Type: application/json');
 
-// DB Connection
 require __DIR__ . '/db_connect.php';
 
-// Only accept POST
+// Only accept POST requests.
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-    echo json_encode(['ok' => false, 'error' => 'Method not allowed. Use POST.']);
+    echo json_encode([
+        'ok' => false,
+        'error' => 'Method not allowed. Use POST.'
+    ]);
     exit;
 }
 
-$itemCopyID = $_POST['itemCopyID'] ?? '';
-$title          = trim($_POST['title'] ?? '');
-$itemID         = trim($_POST['itemID'] ?? '');
-$shelfLocation  = trim($_POST['shelfLocation'] ?? '');
-$branchID       = trim($_POST['branchID'] ?? '');
-$itemType       = trim($_POST['itemType'] ?? '');
-$status         = trim($_POST['status'] ?? 'Available');
+// Read form values.
+$itemCopyID = trim((string)($_POST['itemCopyID'] ?? ''));
+$title = trim((string)($_POST['title'] ?? ''));
+$itemID = trim((string)($_POST['itemID'] ?? ''));
+$branchID = trim((string)($_POST['branchID'] ?? ''));
+$shelfLocation = trim((string)($_POST['shelfLocation'] ?? ''));
+$itemType = trim((string)($_POST['itemType'] ?? ''));
+$status = trim((string)($_POST['status'] ?? 'Available'));
 
-// Validate itemCopyID
-if ($itemCopyID === '' || !ctype_digit((string)$itemCopyID)) {
+// Validate numeric IDs.
+if (!ctype_digit($itemCopyID) || (int)$itemCopyID < 1) {
     http_response_code(400);
-    echo json_encode(['ok' => false, 'error' => 'Please enter a valid numeric Item Copy ID.']);
+    echo json_encode([
+        'ok' => false,
+        'error' => 'Please enter a valid Item Copy ID.'
+    ]);
     exit;
 }
 
-// Validate title
-if ($title === '') {
+if (!ctype_digit($itemID) || (int)$itemID < 1) {
     http_response_code(400);
-    echo json_encode(['ok' => false, 'error' => 'Please enter a title.']);
+    echo json_encode([
+        'ok' => false,
+        'error' => 'Please enter a valid Item ID.'
+    ]);
     exit;
 }
 
-// Validate itemType
-if ($itemType === '') {
+if (!ctype_digit($branchID) || (int)$branchID < 1) {
     http_response_code(400);
-    echo json_encode(['ok' => false, 'error' => 'Please enter an Item Type.']);
+    echo json_encode([
+        'ok' => false,
+        'error' => 'Please enter a valid Branch ID.'
+    ]);
     exit;
 }
 
-// Validate status against allowed values
-$allowedStatuses = ['Available', 'CheckedOut', 'Maintenance', 'Retired'];
+// Validate text fields.
+if ($title === '' || $itemType === '' || $shelfLocation === '') {
+    http_response_code(400);
+    echo json_encode([
+        'ok' => false,
+        'error' => 'Please fill in the title, item type, and shelf location.'
+    ]);
+    exit;
+}
+
+// Match the statuses used by the checkout system.
+$allowedStatuses = [
+    'Available',
+    'CheckedOut',
+    'Maintenance',
+    'Retired'
+];
+
 if (!in_array($status, $allowedStatuses, true)) {
     http_response_code(400);
-    echo json_encode(['ok' => false, 'error' => 'Invalid status. Allowed: ' . implode(', ', $allowedStatuses)]);
+    echo json_encode([
+        'ok' => false,
+        'error' => 'Invalid item status.'
+    ]);
     exit;
 }
 
 try {
-    $check = $pdo->prepare('SELECT 1 FROM Item_Copy WHERE ItemCopyID = ?');
-    $check->execute([(int)$itemCopyID]);
-    if ($check->fetchColumn()) {
+    // Check for an existing physical copy.
+    $checkCopy = $pdo->prepare(
+        'SELECT 1 FROM Item_Copy WHERE ItemCopyID = ?'
+    );
+    $checkCopy->execute([(int)$itemCopyID]);
+
+    if ($checkCopy->fetchColumn()) {
         http_response_code(409);
-        echo json_encode(['ok' => false, 'error' => 'An item copy with that ID already exists.']);
+        echo json_encode([
+            'ok' => false,
+            'error' => 'An item copy with that ID already exists.'
+        ]);
         exit;
     }
 
-    $stmt = $pdo->prepare(
-        'INSERT INTO Item_Copy (ItemCopyID, Title, ItemID, ShelfLocationCode, BranchID, ItemType, Status)
-         VALUES (?, ?, ?, ?, ?, ?, ?)'
+    // Confirm the catalog item exists.
+    $checkItem = $pdo->prepare(
+        'SELECT ItemType FROM ITEM WHERE ItemID = ?'
     );
+    $checkItem->execute([(int)$itemID]);
+
+    $catalogItemType = $checkItem->fetchColumn();
+
+    if ($catalogItemType === false) {
+        http_response_code(400);
+        echo json_encode([
+            'ok' => false,
+            'error' => 'Item ID does not exist in the catalog. Create the catalog item first.'
+        ]);
+        exit;
+    }
+
+    // Ensure the physical copy uses the catalog item's type.
+    if (strcasecmp(trim((string)$catalogItemType), $itemType) !== 0) {
+        http_response_code(400);
+        echo json_encode([
+            'ok' => false,
+            'error' => 'Item Type must match the existing catalog item type: ' . $catalogItemType
+        ]);
+        exit;
+    }
+
+    // Confirm the branch exists.
+    $checkBranch = $pdo->prepare(
+        'SELECT 1 FROM Branch WHERE BranchID = ?'
+    );
+    $checkBranch->execute([(int)$branchID]);
+
+    if (!$checkBranch->fetchColumn()) {
+        http_response_code(400);
+        echo json_encode([
+            'ok' => false,
+            'error' => 'Branch ID does not exist.'
+        ]);
+        exit;
+    }
+
+    // Add the physical copy.
+    $stmt = $pdo->prepare(
+        'INSERT INTO Item_Copy
+            (ItemCopyID, Title, ItemID, ShelfLocationCode,
+             BranchID, ItemType, Status, AcquisitionDate)
+         VALUES (?, ?, ?, ?, ?, ?, ?, CURDATE())'
+    );
+
     $stmt->execute([
         (int)$itemCopyID,
         $title,
@@ -68,30 +150,41 @@ try {
         $shelfLocation,
         (int)$branchID,
         $itemType,
-        $status,
+        $status
     ]);
 
     echo json_encode([
         'ok' => true,
         'item' => [
-            'itemCopyID'    => (int)$itemCopyID,
-            'title'         => $title,
-            'itemID'        => (int)$itemID,
+            'itemCopyID' => (int)$itemCopyID,
+            'title' => $title,
+            'itemID' => (int)$itemID,
             'shelfLocation' => $shelfLocation,
-            'branchID'      => (int)$branchID,
-            'itemType'      => $itemType,
-            'status'        => $status,
-            'available'     => strcasecmp($status, 'Available') === 0,
-        ],
+            'branchID' => (int)$branchID,
+            'itemType' => $itemType,
+            'status' => $status,
+            'available' => $status === 'Available'
+        ]
     ]);
+
 } catch (PDOException $e) {
-    if ($e->getCode() === '23000') {
+    $mysqlError = $e->errorInfo[1] ?? null;
+
+    error_log('addItem.php database error: ' . $e->getMessage());
+
+    if ($mysqlError == 1062) {
         http_response_code(409);
-        echo json_encode(['ok' => false, 'error' => 'An item copy with that ID already exists.']);
-        exit;
+        $message = 'An item copy with that ID already exists.';
+    } elseif ($mysqlError == 1452) {
+        http_response_code(400);
+        $message = 'Invalid Item ID or Branch ID. The referenced record does not exist.';
+    } else {
+        http_response_code(500);
+        $message = 'Unable to save the item copy due to a database error.';
     }
 
-    http_response_code(500);
-    echo json_encode(['ok' => false, 'error' => 'Insert failed: ' . $e->getMessage()]);
-    exit;
+    echo json_encode([
+        'ok' => false,
+        'error' => $message
+    ]);
 }
