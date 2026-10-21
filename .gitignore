@@ -1,2 +1,4 @@
 # Ignore the password file
 *.db_pass.php
+# ignore php installation
+./php/
