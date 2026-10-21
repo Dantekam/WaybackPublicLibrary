@@ -1,23 +1,17 @@
 (() => {
   'use strict';
 
-  // Helpers
   const $ = (selector, root = document) =>
     root ? root.querySelector(selector) : null;
 
   function setField(box, field, value) {
     const element = $(`[data-field="${field}"]`, box);
-
-    if (element) {
-      element.textContent = value ?? '--';
-    }
+    if (element) element.textContent = value ?? '--';
   }
 
   function setError(box, message) {
     const element = $('[data-field="error"]', box);
-
     if (!element) return;
-
     element.textContent = message || '';
     element.hidden = !message;
   }
@@ -29,17 +23,13 @@
     });
 
     const text = await response.text();
-
     let data;
 
     try {
       data = JSON.parse(text);
     } catch (error) {
       console.error('Invalid server response:', text);
-
-      throw new Error(
-        'The server returned an invalid response.'
-      );
+      throw new Error('The server returned an invalid response.');
     }
 
     if (!data || typeof data !== 'object') {
@@ -49,69 +39,61 @@
     return data;
   }
 
-  // Elements
   const patronForm = $('#patronForm');
   const patronResult = $('#patronResult');
-
   const itemForm = $('#itemForm');
   const itemResult = $('#itemResult');
-
   const checkoutForm = $('#checkoutForm');
   const checkoutSummary = $('.checkout-summary');
-
   const confirmationCard = $('#confirmationCard');
-  const checkoutsBody = $('#checkoutsBody');
-
   const doneButton = $('#doneButton');
 
-  if (
-    !patronForm ||
-    !patronResult ||
-    !itemForm ||
-    !itemResult ||
-    !checkoutForm ||
-    !checkoutSummary
-  ) {
-    console.error(
-      'Checkout initialization failed: required HTML elements are missing.'
-    );
+  // Supports the existing HTML without modifying index.php.
+  const checkoutsBody =
+    $('#checkoutsBody') ||
+    $('.current-checkouts tbody');
+
+  if (!patronForm || !patronResult ||
+      !itemForm || !itemResult ||
+      !checkoutForm || !checkoutSummary) {
+    console.error('Checkout initialization failed.');
     return;
   }
 
-  // State
   const state = {
     patron: null,
     item: null,
     submitting: false,
     patronRequest: 0,
-    itemRequest: 0
+    itemRequest: 0,
+    checkoutsRequest: 0
   };
 
   const submitButton = checkoutForm.querySelector(
     'button[type="submit"], input[type="submit"]'
   );
 
-  // Clear displayed patron information
   function clearPatronDisplay() {
-    setField(patronResult, 'name', '--');
-    setField(patronResult, 'expiration', '--');
-    setField(patronResult, 'activeCheckouts', '--');
-    setField(patronResult, 'outstandingFines', '--');
-    setField(patronResult, 'eligibility', '--');
+    for (const field of [
+      'name', 'expiration', 'activeCheckouts',
+      'outstandingFines', 'eligibility'
+    ]) {
+      setField(patronResult, field, '--');
+    }
   }
 
-  // Clear displayed item information
   function clearItemDisplay() {
-    setField(itemResult, 'itemCopyID', '--');
-    setField(itemResult, 'itemType', '--');
-    setField(itemResult, 'status', '--');
+    for (const field of [
+      'itemCopyID', 'itemType', 'status'
+    ]) {
+      setField(itemResult, field, '--');
+    }
   }
 
   function showCheckoutError(message) {
     setError(checkoutSummary, message);
   }
 
-  // Checkout Summary
   function updateSummary() {
     setField(
       checkoutSummary,
@@ -139,17 +121,15 @@
 
     if (patronInput) {
       patronInput.value = state.patron
-        ? state.patron.patronID
-        : '';
+        ? state.patron.patronID : '';
     }
 
     if (itemInput) {
       itemInput.value = state.item
-        ? state.item.itemCopyID
-        : '';
+        ? state.item.itemCopyID : '';
     }
 
-    setError(checkoutSummary, '');
+    showCheckoutError('');
   }
 
   function setSubmitting(submitting) {
@@ -157,20 +137,129 @@
 
     if (submitButton) {
       submitButton.disabled = submitting;
+      const label = submitting
+        ? 'Recording...' : 'Record Checkout';
 
-      if (
-        'value' in submitButton &&
-        submitButton.tagName === 'INPUT'
-      ) {
-        submitButton.value = submitting
-          ? 'Recording...'
-          : 'Record Checkout';
+      if (submitButton.tagName === 'INPUT') {
+        submitButton.value = label;
       } else {
-        submitButton.textContent = submitting
-          ? 'Recording...'
-          : 'Record Checkout';
+        submitButton.textContent = label;
       }
     }
+  }
+
+  // Current Checkouts Table
+  function showTableMessage(message) {
+    if (!checkoutsBody) return;
+
+    checkoutsBody.replaceChildren();
+
+    const row = document.createElement('tr');
+    row.className = 'empty-row';
+
+    const cell = document.createElement('td');
+    cell.colSpan = 6;
+    cell.textContent = message;
+
+    row.appendChild(cell);
+    checkoutsBody.appendChild(row);
+  }
+
+  function addCheckoutRow(checkout) {
+    if (!checkoutsBody) return;
+
+    const row = document.createElement('tr');
+
+    const values = [
+      checkout.checkoutID,
+      checkout.patron,
+      checkout.itemCopyID,
+      checkout.itemType,
+      checkout.checkoutDate,
+      checkout.dueDate
+    ];
+
+    for (const value of values) {
+      const cell = document.createElement('td');
+      cell.textContent = value ?? '--';
+      row.appendChild(cell);
+    }
+
+    checkoutsBody.appendChild(row);
+  }
+
+  function renderCheckouts(checkouts) {
+    if (!checkoutsBody) return;
+
+    checkoutsBody.replaceChildren();
+
+    if (!Array.isArray(checkouts) ||
+        checkouts.length === 0) {
+      showTableMessage(
+        'This patron has no active checkouts.'
+      );
+      return;
+    }
+
+    for (const checkout of checkouts) {
+      addCheckoutRow(checkout);
+    }
+  }
+
+  async function loadPatronCheckouts(patronID) {
+    const requestNumber = ++state.checkoutsRequest;
+
+    if (!patronID) {
+      showTableMessage(
+        'Search for a patron to view their current checkouts.'
+      );
+      return;
+    }
+
+    showTableMessage('Loading current checkouts...');
+
+    try {
+      const data = await fetchJSON(
+        'script/getPatronCheckouts.php?patronID=' +
+        encodeURIComponent(patronID)
+      );
+
+      if (requestNumber !== state.checkoutsRequest) {
+        return;
+      }
+
+      if (!state.patron ||
+          String(state.patron.patronID) !== String(patronID)) {
+        return;
+      }
+
+      if (!data.ok || !Array.isArray(data.checkouts)) {
+        throw new Error(
+          data.error || 'Unable to load current checkouts.'
+        );
+      }
+
+      renderCheckouts(data.checkouts);
+
+    } catch (error) {
+      if (requestNumber !== state.checkoutsRequest) {
+        return;
+      }
+
+      console.error('Checkout list failed:', error);
+
+      showTableMessage(
+        'Unable to load current checkouts. Please try again.'
+      );
+    }
+  }
+
+  function clearCheckoutTable() {
+    ++state.checkoutsRequest;
+
+    showTableMessage(
+      'Search for a patron to view their current checkouts.'
+    );
   }
 
   // Find Patron
@@ -183,29 +272,28 @@
     clearPatronDisplay();
     updateSummary();
     setError(patronResult, '');
+    clearCheckoutTable();
 
-    const patronInput =
+    const input =
       patronForm.elements.namedItem('patronID');
 
-    const patronID = patronInput
-      ? patronInput.value.trim()
-      : '';
+    const patronID = input
+      ? input.value.trim() : '';
 
     if (!patronID) {
-      setError(
-        patronResult,
-        'Please enter a Patron ID.'
-      );
+      setError(patronResult, 'Please enter a Patron ID.');
       return;
     }
 
     try {
       const data = await fetchJSON(
-        `script/findPatron.php?patronID=${encodeURIComponent(patronID)}`
+        'script/findPatron.php?patronID=' +
+        encodeURIComponent(patronID)
       );
 
-      // Ignore outdated search results.
-      if (requestNumber !== state.patronRequest) return;
+      if (requestNumber !== state.patronRequest) {
+        return;
+      }
 
       if (!data.ok || !data.patron) {
         setError(
@@ -215,7 +303,6 @@
         return;
       }
 
-      // The updated PHP lookup must return eligibility data.
       const patron = data.patron;
 
       if (
@@ -225,25 +312,15 @@
       ) {
         setError(
           patronResult,
-          'Patron eligibility details are missing. ' +
-          'Check that the updated findPatron.php is deployed.'
+          'Patron eligibility details are missing.'
         );
         return;
       }
 
       state.patron = patron;
 
-      setField(
-        patronResult,
-        'name',
-        patron.name
-      );
-
-      setField(
-        patronResult,
-        'expiration',
-        patron.expiration
-      );
+      setField(patronResult, 'name', patron.name);
+      setField(patronResult, 'expiration', patron.expiration);
 
       setField(
         patronResult,
@@ -257,34 +334,36 @@
         `$${Number(patron.outstandingFines).toFixed(2)}`
       );
 
-      const reasons = Array.isArray(patron.eligibilityReasons)
-        ? patron.eligibilityReasons
-        : [];
-
-    const eligibility = patron.eligible
-      ? 'Eligible'
-      : 'Ineligible — ' + (
-          reasons.length
-            ? reasons.join(', ')
-            : 'Patron does not meet checkout requirements'
-        );
+      const reasons =
+        Array.isArray(patron.eligibilityReasons)
+          ? patron.eligibilityReasons : [];
 
       setField(
         patronResult,
         'eligibility',
-        eligibility
+        patron.eligible
+          ? 'Eligible'
+          : 'Ineligible — ' +
+            (reasons.join(', ') ||
+             'Patron does not meet checkout requirements')
       );
 
       updateSummary();
 
+      // Automatically load this patron's active loans.
+      await loadPatronCheckouts(patron.patronID);
+
     } catch (error) {
-      if (requestNumber !== state.patronRequest) return;
+      if (requestNumber !== state.patronRequest) {
+        return;
+      }
 
       console.error('Patron lookup failed:', error);
 
       state.patron = null;
       clearPatronDisplay();
       updateSummary();
+      clearCheckoutTable();
 
       setError(
         patronResult,
@@ -304,27 +383,26 @@
     updateSummary();
     setError(itemResult, '');
 
-    const itemInput =
+    const input =
       itemForm.elements.namedItem('itemCopyID');
 
-    const itemCopyID = itemInput
-      ? itemInput.value.trim()
-      : '';
+    const itemCopyID = input
+      ? input.value.trim() : '';
 
     if (!itemCopyID) {
-      setError(
-        itemResult,
-        'Please enter an Item Copy ID.'
-      );
+      setError(itemResult, 'Please enter an Item Copy ID.');
       return;
     }
 
     try {
       const data = await fetchJSON(
-        `script/findItem.php?itemCopyID=${encodeURIComponent(itemCopyID)}`
+        'script/findItem.php?itemCopyID=' +
+        encodeURIComponent(itemCopyID)
       );
 
-      if (requestNumber !== state.itemRequest) return;
+      if (requestNumber !== state.itemRequest) {
+        return;
+      }
 
       if (!data.ok || !data.item) {
         setError(
@@ -337,22 +415,18 @@
       state.item = data.item;
 
       setField(
-        itemResult,
-        'itemCopyID',
-        data.item.itemCopyID
+        itemResult, 'itemCopyID', data.item.itemCopyID
       );
 
       setField(
-        itemResult,
-        'itemType',
-        data.item.itemType
+        itemResult, 'itemType', data.item.itemType
       );
 
       setField(
-        itemResult,
-        'status',
-        data.item.status
+        itemResult, 'status', data.item.status
       );
+
+      updateSummary();
 
       if (!data.item.available) {
         setError(
@@ -361,10 +435,10 @@
         );
       }
 
-      updateSummary();
-
     } catch (error) {
-      if (requestNumber !== state.itemRequest) return;
+      if (requestNumber !== state.itemRequest) {
+        return;
+      }
 
       console.error('Item lookup failed:', error);
 
@@ -379,100 +453,27 @@
     }
   });
 
-  // Confirmation Display
+  // Confirmation
   function showConfirmation(checkout) {
-    if (!confirmationCard) {
-      console.warn('Confirmation card not found.');
-      return;
-    }
+    if (!confirmationCard) return;
 
     setField(
-      confirmationCard,
-      'checkoutID',
-      checkout.checkoutID
+      confirmationCard, 'checkoutID', checkout.checkoutID
     );
-
     setField(
-      confirmationCard,
-      'patron',
-      checkout.patron
+      confirmationCard, 'patron', checkout.patron
     );
-
     setField(
-      confirmationCard,
-      'itemCopyID',
-      checkout.itemCopyID
+      confirmationCard, 'itemCopyID', checkout.itemCopyID
     );
-
     setField(
-      confirmationCard,
-      'checkoutDate',
-      checkout.checkoutDate
+      confirmationCard, 'checkoutDate', checkout.checkoutDate
     );
-
     setField(
-      confirmationCard,
-      'dueDate',
-      checkout.dueDate
+      confirmationCard, 'dueDate', checkout.dueDate
     );
 
     confirmationCard.hidden = false;
-  }
-
-  // Current Checkouts Table
-  function addCheckoutRow(checkout) {
-    if (!checkoutsBody) {
-      console.warn(
-        'Current Checkouts table body not found.'
-      );
-      return;
-    }
-
-    const emptyRow =
-      checkoutsBody.querySelector('.empty-row');
-
-    if (emptyRow) {
-      emptyRow.remove();
-    }
-
-    const row = document.createElement('tr');
-
-    const values = [
-      checkout.checkoutID,
-      checkout.patron,
-      checkout.itemCopyID,
-      checkout.itemType,
-      checkout.checkoutDate,
-      checkout.dueDate
-    ];
-
-    values.forEach((value) => {
-      const cell = document.createElement('td');
-      cell.textContent = value ?? '--';
-      row.appendChild(cell);
-    });
-
-    checkoutsBody.prepend(row);
-  }
-
-  // Reset After Successful Checkout
-  function resetCheckoutSelection() {
-    ++state.patronRequest;
-    ++state.itemRequest;
-
-    state.patron = null;
-    state.item = null;
-
-    patronForm.reset();
-    itemForm.reset();
-
-    clearPatronDisplay();
-    clearItemDisplay();
-
-    setError(patronResult, '');
-    setError(itemResult, '');
-
-    updateSummary();
   }
 
   // Record Checkout
@@ -490,29 +491,14 @@
       return;
     }
 
-    // Frontend eligibility check.
-    // The backend still validates everything again.
-    if (state.patron.expired) {
-      showCheckoutError(
-        'Cannot check out: patron membership is expired.'
-      );
-      return;
-    }
-
-    if (!state.patron.eligible) {
-      const reasons = Array.isArray(
-        state.patron.eligibilityReasons
-      )
-        ? state.patron.eligibilityReasons
-        : [];
+    if (state.patron.expired || !state.patron.eligible) {
+      const reasons =
+        Array.isArray(state.patron.eligibilityReasons)
+          ? state.patron.eligibilityReasons : [];
 
       showCheckoutError(
         'Cannot check out: ' +
-        (
-          reasons.length
-            ? reasons.join(', ')
-            : 'patron is not eligible'
-        ) +
+        (reasons.join(', ') || 'patron is not eligible') +
         '.'
       );
       return;
@@ -525,13 +511,13 @@
       return;
     }
 
+    const patronID = state.patron.patronID;
     const formData = new FormData(checkoutForm);
 
     setSubmitting(true);
 
     let data;
 
-    // Keep the network request separate from UI rendering.
     try {
       data = await fetchJSON(
         'script/recordCheckout.php',
@@ -561,56 +547,89 @@
       return;
     }
 
-    const checkout = data.checkout;
-
-    if (!checkout) {
-      console.error(
-        'Checkout succeeded but the response contains no checkout details.',
-        data
-      );
-
+    if (!data.checkout) {
       showCheckoutError(
-        'Checkout may have been recorded, but the confirmation ' +
-        'details were missing. Check the database.'
+        'Checkout may have been recorded, but confirmation ' +
+        'details are missing. Check the database.'
       );
 
       setSubmitting(false);
       return;
     }
 
-    // Reset first so the same selection cannot be submitted again.
-    resetCheckoutSelection();
+    const checkout = data.checkout;
+
+    // Clear the selected item to prevent a duplicate attempt.
+    ++state.itemRequest;
+    state.item = null;
+    itemForm.reset();
+    clearItemDisplay();
+    setError(itemResult, '');
+
+    updateSummary();
     setSubmitting(false);
 
     try {
       showConfirmation(checkout);
-      addCheckoutRow(checkout);
+
+      // Update the patron count and list from the database.
+      // The current patron remains selected.
+      const patronData = await fetchJSON(
+        'script/findPatron.php?patronID=' +
+        encodeURIComponent(patronID)
+      );
 
       if (
-        confirmationCard &&
-        typeof confirmationCard.scrollIntoView === 'function'
+        patronData.ok &&
+        patronData.patron &&
+        state.patron &&
+        String(state.patron.patronID) === String(patronID)
       ) {
-        confirmationCard.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center'
-        });
+        state.patron = patronData.patron;
+
+        setField(
+          patronResult,
+          'activeCheckouts',
+          `${state.patron.activeCheckouts} / ${state.patron.checkoutLimit ?? 20}`
+        );
+
+        const reasons =
+          Array.isArray(state.patron.eligibilityReasons)
+            ? state.patron.eligibilityReasons : [];
+
+        setField(
+          patronResult,
+          'eligibility',
+          state.patron.eligible
+            ? 'Eligible'
+            : 'Ineligible — ' +
+              (reasons.join(', ') ||
+               'Patron does not meet checkout requirements')
+        );
+
+        await loadPatronCheckouts(patronID);
       }
 
     } catch (error) {
       console.error(
-        'Checkout recorded, but the interface could not display it:',
+        'Checkout saved, but list refresh failed:',
         error
       );
 
-      showCheckoutError(
-        'Checkout was recorded successfully, but the display ' +
-        'could not be updated. Checkout ID: ' +
-        (checkout.checkoutID ?? 'unknown')
+      showTableMessage(
+        'Checkout recorded. Search for the patron again ' +
+        'to refresh current checkouts.'
       );
+    }
+
+    if (confirmationCard) {
+      confirmationCard.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
     }
   });
 
-  // Done Button
   if (doneButton) {
     doneButton.addEventListener('click', () => {
       if (confirmationCard) {
@@ -624,4 +643,5 @@
     });
   }
 
+  clearCheckoutTable();
 })();
