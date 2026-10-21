@@ -175,7 +175,7 @@
       // Fill confirmation card
       setField(confirmationCard, 'checkoutID',   c.checkoutID);
       setField(confirmationCard, 'patron',       c.patron);
-      setField(confirmationCard, 'itemCopyID',   c.item_CopyID);
+      setField(confirmationCard, 'itemCopyID',   c.itemCopyID);
       setField(confirmationCard, 'checkoutDate', c.checkoutDate);
       setField(confirmationCard, 'dueDate',      c.dueDate);
       confirmationCard.hidden = false;
@@ -211,7 +211,7 @@
     tr.innerHTML = `
       <td>${escapeHTML(c.checkoutID)}</td>
       <td>${escapeHTML(c.patron)}</td>
-      <td>${escapeHTML(c.item_CopyID)}</td>
+      <td>${escapeHTML(c.ID)}</td>
       <td>${escapeHTML(c.itemType)}</td>
       <td>${escapeHTML(c.checkoutDate)}</td>
       <td>${escapeHTML(c.dueDate)}</td>
