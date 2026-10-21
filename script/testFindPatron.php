@@ -52,7 +52,7 @@ test('Decimal ID', '?patronID=1.5', 400, 'valid numeric Patron ID');
 // Patron not found
 test('Missing patron', '?patronID=999999', 200, 'Patron not found');
 
-// Existing patron: change 1 to a real PatronID in your database
+// Existing patrons
 test('Existing patron', '?patronID=1', 200, '"ok":true');
 test('Patron has a name', '?patronID=1', 200, '"name":');
 test('Patron has expiration', '?patronID=1', 200, '"expiration":');

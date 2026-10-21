@@ -52,7 +52,7 @@ test('Decimal ID', '?itemCopyID=1.5', 400, 'valid numeric Item Copy ID');
 // Item not found
 test('Missing item', '?itemCopyID=999999', 200, 'Itemcopy not found');
 
-// Existing item: change 1 to a real ItemCopyID in your database
+// Existing items
 test('Existing item', '?itemCopyID=1', 200, '"ok":true');
 test('Item has type', '?itemCopyID=1', 200, '"itemType":');
 test('Item has status', '?itemCopyID=1', 200, '"status":');
