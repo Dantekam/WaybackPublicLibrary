@@ -264,11 +264,11 @@
                 </label>
                 <label>
                     Status
-                    <select name="status">
-                        <option value="Open" selected>Open</option>
+                    <select name="status" required>
+                        <option value="Available" selected>Available</option>
                         <option value="CheckedOut">Checked Out</option>
                         <option value="Maintenance">Maintenance</option>
-                        <option value="Available">Available</option>
+                        <option value="Retired">Retired</option>
                     </select>
                 </label>
                 <p id="addItemMsg" class="msg"></p>
