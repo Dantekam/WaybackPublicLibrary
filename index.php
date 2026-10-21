@@ -56,6 +56,22 @@
                         <strong>Membership Expiration:</strong>
                         <span data-field="expiration">--</span>
                     </p>
+        
+                    <p>
+                        <strong>Active Checkouts:</strong>
+                        <span data-field="activeCheckouts">--</span>
+                    </p>
+                    
+                    <p>
+                        <strong>Outstanding Fines:</strong>
+                        <span data-field="outstandingFines">--</span>
+                    </p>
+                    
+                    <p>
+                        <strong>Checkout Eligibility:</strong>
+                        <span data-field="eligibility">--</span>
+                    </p>
+
                     <p class="error" data-field="error" hidden></p>
                 </div>
             </div>
