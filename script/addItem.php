@@ -17,7 +17,7 @@ $itemID         = trim($_POST['itemID'] ?? '');
 $shelfLocation  = trim($_POST['shelfLocation'] ?? '');
 $branchID       = trim($_POST['branchID'] ?? '');
 $itemType       = trim($_POST['itemType'] ?? '');
-$status         = trim($_POST['status'] ?? 'Open');
+$status         = trim($_POST['status'] ?? 'Available');
 
 // Validate itemCopyID
 if ($itemCopyID === '' || !ctype_digit((string)$itemCopyID)) {
@@ -29,7 +29,7 @@ if ($itemCopyID === '' || !ctype_digit((string)$itemCopyID)) {
 // Validate title
 if ($title === '') {
     http_response_code(400);
-    echo json_encode(['ok' => false, 'error' => 'Please enter an title.']);
+    echo json_encode(['ok' => false, 'error' => 'Please enter a title.']);
     exit;
 }
 
@@ -41,7 +41,7 @@ if ($itemType === '') {
 }
 
 // Validate status against allowed values
-$allowedStatuses = ['Open', 'On Loan', 'Maintenance', 'Retired'];
+$allowedStatuses = ['Available', 'CheckedOut', 'Maintenance', 'Retired'];
 if (!in_array($status, $allowedStatuses, true)) {
     http_response_code(400);
     echo json_encode(['ok' => false, 'error' => 'Invalid status. Allowed: ' . implode(', ', $allowedStatuses)]);
@@ -81,7 +81,7 @@ try {
             'branchID'      => (int)$branchID,
             'itemType'      => $itemType,
             'status'        => $status,
-            'available'     => strcasecmp($status, 'Open') === 0,
+            'available'     => strcasecmp($status, 'Available') === 0,
         ],
     ]);
 } catch (PDOException $e) {
