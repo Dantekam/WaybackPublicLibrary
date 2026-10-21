@@ -215,7 +215,7 @@
     tr.innerHTML = `
       <td>${escapeHTML(c.checkoutID)}</td>
       <td>${escapeHTML(c.patron)}</td>
-      <td>${escapeHTML(c.ID)}</td>
+      <td>${escapeHTML(c.itemCopyID)}</td>
       <td>${escapeHTML(c.itemType)}</td>
       <td>${escapeHTML(c.checkoutDate)}</td>
       <td>${escapeHTML(c.dueDate)}</td>
