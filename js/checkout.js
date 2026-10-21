@@ -77,6 +77,8 @@
       }
       updateSummary();
     } catch (err) {
+      state.patron = null;
+      updateSummary();
       setError(patronResult, 'Network error — please try again.');
     }
   });
