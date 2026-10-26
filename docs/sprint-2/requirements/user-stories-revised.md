@@ -161,6 +161,34 @@ The team should be able to implement this system with the working process and pr
 
 ---
 
+## User Story-12 - Reservation of Items
+
+**Priority:** High
+
+**User Story:**
+
+As a librarian, I want to record that an Item copy has been reserved so that it can be properly taken off shelf and placed on hold so the proper patron may come in and check it our when ready.
+
+### Acceptance Criteria
+
+1. The librarian can update an items status to be reserved so the item copy is unable to be checked out by other patrons.
+2. The system keeps record of the date at which an item copy was placed on hold.
+3. The librarian can allow the patron to come in within the 5 day period to check out their reserved item if eligible.
+4. The system notifies when the 5 day period is up in case of the patron not checking it out within the allotted time.
+5. The librarian is able to place any item past the allotted 5 day reserve period back on shelf for public checkout.
+
+### Client Clarifications
+
+- Reserved for 5 days before taken off hold and the item copy is placed back on the shelf.
+
+### Sprint 2 Notes
+
+This story represents a new process defined by a clients updated business requirements.
+
+The team should be able to implement this system with the working process and proper error handling.
+
+---
+
 ## Proposed Additional Scope – US-09: Process Overdue Fine
 
 **Priority:** High for fine calculation during check-in; remaining fine-management functionality to be refined separately.
