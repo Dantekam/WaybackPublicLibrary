@@ -131,6 +131,36 @@ The team should also distinguish between recording an unresolved physical return
 
 ---
 
+## Additional Business Requirements States From Client
+
+## User Story-11 - Renewal of Items
+
+**Priority:** High
+
+**User Story:**
+
+As a librarian, I want to record that a returned has been renewed so that it can be correctly identified as such and the customer will not be fined.
+
+### Acceptance Criteria
+
+1. The librarian can indicate that a returned item copy has been renewed to the same patron bringing in the item they'd like renewed.
+2. The system allows the librarian to record the renewed item and automatically calculates the new due date based on when it was renwed.
+3. The system tracks how many times the item copy has been renewed by the patron that has the item copy checked out.
+4. The librarian denies renewal of the item copy if that item has been checked out by the same patron 3 times (initial + 2 renewal periods).
+
+### Client Clarifications
+
+- Renewed items will reset the due date for the duration defaulted by item type
+- The item can be renewed two times (three times total, has to be brought back to make a new transaction)
+
+### Sprint 2 Notes
+
+This story represents a new process defined by a clients updated business requirements.
+
+The team should be able to implement this system with the working process and proper error handling.
+
+---
+
 ## Proposed Additional Scope – US-09: Process Overdue Fine
 
 **Priority:** High for fine calculation during check-in; remaining fine-management functionality to be refined separately.
