@@ -4,9 +4,13 @@ This directory contains the documentation and supporting models developed or rev
 
 ## Sprint Goal
 
-Develop and integrate the library's check-in process, allowing librarians to record returned items, determine where they should be routed, and handle items that cannot be scanned.
+**Sprint 2 Goal**
 
-Sprint 2 will build on the checkout and collection management functionality implemented during Sprint 1.
+Complete the core library check-in workflow so that returned items are correctly removed from patrons' active checkouts, routed to their appropriate locations, and prevented from being borrowed again until available.
+
+In response to updated client priorities, the team will also refine requirements for item renewals, reservations, and checkout usability improvements. Additional functionality will be selected based on business value, dependencies, and team capacity.
+
+The team will preserve Sprint 1 functionality while improving consistency between requirements, models, implementation, and testing.
 
 ## Requirements
 
