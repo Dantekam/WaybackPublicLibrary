@@ -8,14 +8,14 @@
   <script src="js/libraryItem.js" defer></script>
 </head>
 <body>
-  <header class="site-header"><h1>Wayback Public Library</h1></header>
+  <header class="site-header"><h1>Wayback Public Library</h1>
+    <h4>Add Library Item</h4></header>
   <main class="page-container library-page">
     <nav class="library-nav" aria-label="Library tasks">
       <a href="index.php">Checkout</a>
       <a href="add-library-item.php" aria-current="page">Add Library Item</a>
+      <a href="return-item.php">Return Item</a>
     </nav>
-    <h2>Add Library Item</h2>
-    <p>Find a catalog definition or create one, then add a physical copy.</p>
     <form id="libraryItemForm">
       <section class="library-panel">
         <h3>1. Catalog definition</h3>

@@ -14,6 +14,7 @@
 
     <header class="site-header">
         <h1>Wayback Public Library</h1>
+        <h4>Checkout a Library Item</h4>
     </header>
 
     <main class="page-container">
@@ -21,13 +22,8 @@
     <nav class="library-nav" aria-label="Library tasks">
         <a href="index.php" aria-current="page">Checkout</a>
         <a href="add-library-item.php">Add Library Item</a>
+        <a href="return-item.php">Return Item</a>
     </nav>
-
-        <section class="page-heading">
-            <h2>Checkout a Library Item</h2>
-            <button id="addItemBtn" type="button">Add Item</button>
-        </section>
-
         <section class="lookup-container">
 
             <!-- ===== Find Patron ===== -->
@@ -243,6 +239,8 @@
                         <tr>
                             <th>Checkout ID</th>
                             <th>Patron</th>
+                            <th>Title</th>
+                            <th>Author</th>
                             <th>Item Copy ID</th>
                             <th>Item Type</th>
                             <th>Checkout Date</th>
@@ -253,7 +251,7 @@
                     <tbody>
 
                         <tr class="empty-row">
-                            <td colspan="6">
+                            <td colspan="8">
                                 Current checkout records will appear here.
                             </td>
                         </tr>
