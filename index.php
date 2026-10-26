@@ -18,6 +18,11 @@
 
     <main class="page-container">
 
+    <nav class="library-nav" aria-label="Library tasks">
+        <a href="index.php" aria-current="page">Checkout</a>
+        <a href="add-library-item.php">Add Library Item</a>
+    </nav>
+
         <section class="page-heading">
             <h2>Checkout a Library Item</h2>
             <button id="addItemBtn" type="button">Add Item</button>
@@ -101,6 +106,14 @@
 
                 <div class="result-box" id="itemResult">
                     <p>
+                        <strong>Author:</strong>
+                        <span data-field="authorLastName" data-field="authorFirstName">--</span>
+                    </p>
+                    <p>
+                        <strong>Title:</strong>
+                        <span data-field="title">--</span>
+                    </p>
+                    <p>
                         <strong>Item Copy ID:</strong>
                         <span data-field="itemCopyID">--</span>
                     </p>
@@ -109,7 +122,10 @@
                         <strong>Item Type:</strong>
                         <span data-field="itemType">--</span>
                     </p>
-
+                    <p>
+                        <strong>Branch:</strong>
+                        <span data-field="branchID">--</span>
+                    </p>
                     <p>
                         <strong>Status:</strong>
                         <span data-field="status">--</span>
@@ -130,12 +146,20 @@
                     <strong>Selected Patron:</strong>
                     <span data-field="patronName">--</span>
                 </p>
+                <p>
+                    <strong>Author:</strong>
+                    <span data-field="authorLastName" data-field="authorFirstName">--</span>
+                </p>
+                <p>
 
                 <p>
                     <strong>Item Copy ID:</strong>
                     <span data-field="itemCopyID">--</span>
                 </p>
-
+                <p>
+                    <strong>Branch:</strong>
+                    <span data-field="branchID">--</span>
+                </p>
                 <p>
                     <strong>Item Type:</strong>
                     <span data-field="itemType">--</span>
@@ -170,7 +194,18 @@
                     <strong>Patron:</strong>
                     <span data-field="patron">--</span>
                 </p>
-
+                <p>
+                    <strong>Author:</strong>
+                    <span data-field="authorLastName" data-field="authorFirstName">--</span>
+                </p>
+                <p>
+                    <strong>Title:</strong>
+                    <span data-field="title">--</span>
+                </p>
+                <p>
+                    <strong>Branch:</strong>
+                    <span data-field="branchID">--</span>
+                </p>
                 <p>
                     <strong>Item Copy ID:</strong>
                     <span data-field="itemCopyID">--</span>

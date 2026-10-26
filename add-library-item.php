@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Add Library Item - Wayback Public Library</title>
   <link rel="stylesheet" href="style/style.css">
-  <link rel="stylesheet" href="style/add-library-item.css">
   <script src="js/libraryItem.js" defer></script>
 </head>
 <body>
