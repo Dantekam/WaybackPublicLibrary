@@ -3,6 +3,12 @@ header('Content-Type: application/json; charset=utf-8');
 
 require __DIR__ . '/db_connect.php';
 
+if ($dbError) {
+    http_response_code(500);
+    echo json_encode(['ok' => false, 'error' => 'Database unavailable.']);
+    exit;
+}
+
 $itemCopyID = $_GET['itemCopyID'] ?? '';
 
 if (!is_string($itemCopyID) ||
@@ -25,10 +31,11 @@ try {
             i.ItemType,
             c.Status,
             c.BranchID,
+            b.BranchName,
             c.ShelfLocationCode
-         FROM `Item_Copy` c
-         INNER JOIN `ITEM` i
-            ON c.ItemID = i.ItemID
+         FROM Item_Copy c
+         INNER JOIN Item   i ON c.ItemID   = i.ItemID
+         LEFT  JOIN Branch b ON c.BranchID = b.BranchID
          WHERE c.ItemCopyID = ?'
     );
 
@@ -48,22 +55,23 @@ try {
     echo json_encode([
         'ok' => true,
         'item' => [
-            'itemCopyID' => (int)$item['ItemCopyID'],
-            'itemID' => (int)$item['ItemID'],
-            'title' => $item['Title'],
-            'itemType' => $item['ItemType'],
-            'status' => $item['Status'],
-            'branchID' => (int)$item['BranchID'],
+            'itemCopyID'    => (int)$item['ItemCopyID'],
+            'itemID'        => (int)$item['ItemID'],
+            'title'         => $item['Title'],
+            'itemType'      => $item['ItemType'],
+            'status'        => $item['Status'],
+            'branchID'      => (int)$item['BranchID'],
+            'branchName'    => $item['BranchName'],
             'shelfLocation' => $item['ShelfLocationCode'],
-            'available' => $available
+            'available'     => $available,
         ]
     ]);
 
 } catch (PDOException $e) {
+    error_log('item-lookup: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode([
         'ok' => false,
         'error' => 'Unable to retrieve item information.'
     ]);
 }
-?>

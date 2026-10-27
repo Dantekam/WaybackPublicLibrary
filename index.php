@@ -103,7 +103,7 @@
                 <div class="result-box" id="itemResult">
                     <p>
                         <strong>Author:</strong>
-                        <span data-field="authorLastName" data-field="authorFirstName">--</span>
+                        <span data-field="author">--</span>
                     </p>
                     <p>
                         <strong>Title:</strong>

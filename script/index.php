@@ -1,116 +1,321 @@
 <?php
-// ------------------------------------------------------------
-// 0. Startup Error's
-// ------------------------------------------------------------
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
-// ------------------------------------------------------------
-// 1. INITIALIZE VARIABLES
-// ------------------------------------------------------------
-[$searchTerm, $searchPerformed, $results, $dbError] = ['', false, [], '']
-
-// ------------------------------------------------------------
-// 2. DATABASE CONNECTION
-// ------------------------------------------------------------
-[$host, $dbname, $username, $dbPassword] = require __DIR__ . '/db_connect.php';
-
-// ------------------------------------------------------------
-// 3. HANDLE THE SEARCH  (only if $pdo exists)
-// ------------------------------------------------------------
-if (isset($_GET['search']) && trim($_GET['search']) !== '') {
-    $searchTerm      = trim($_GET['search']);
-    $searchPerformed = true;
-
-    if (isset($pdo)) {
-        $sql = "SELECT
-                    CONCAT(p.FirstName, ' ', p.LastName) AS patron,
-                    p.MembershipExpiration              AS membership_expiration,
-                    ic.ItemType                         AS item_type,
-                    ic.Status                           AS item_status,
-                    c.CheckOutDate                      AS checkout_date,
-                    c.DueDate                           AS due_date
-                FROM Patron p
-                JOIN CheckOut  c  ON p.PatronID   = c.PatronID
-                JOIN Item_Copy ic ON c.ItemCopyID = ic.ItemCopyID
-                WHERE p.FirstName LIKE :term
-                   OR p.LastName  LIKE :term
-                   OR CONCAT(p.FirstName, ' ', p.LastName) LIKE :term
-                ORDER BY p.LastName ASC, p.FirstName ASC, c.CheckOutDate DESC";
-
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([':term' => '%' . $searchTerm . '%']);
-        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Patron Checkout Search - Wayback Public Library</title>
+    <title>Wayback Public Library - Checkout</title>
+    <link rel="stylesheet" href="style/style.css">
 </head>
+
 <body>
 
-    <header>
-        <p>Wayback Public Library</p>
+    <header class="site-header">
+        <h1>Wayback Public Library</h1>
+        <h4>Checkout a Library Item</h4>
     </header>
 
-    <form action="index.php" method="GET">
-        <label for="search">Search Patrons by Name:</label>
-        <input type="text"
-               id="search"
-               name="search"
-               placeholder="Enter a patron's first or last name..."
-               value="<?php echo htmlspecialchars($searchTerm, ENT_QUOTES, 'UTF-8'); ?>"
-               required>
-        <button type="submit">Search</button>
-    </form>
+    <main class="page-container">
 
-    <hr>
+    <nav class="library-nav" aria-label="Library tasks">
+        <a href="index.php" aria-current="page">Checkout</a>
+        <a href="add-library-item.php">Add Library Item</a>
+        <a href="return-item.php">Return Item</a>
+    </nav>
 
-    <?php if (!empty($dbError)): ?>
-        <p style="color:red;"><?php echo htmlspecialchars($dbError, ENT_QUOTES, 'UTF-8'); ?></p>
-    <?php endif; ?>
+        <section class="lookup-container">
 
-    <?php if ($searchPerformed): ?>
-        <h2>Results for "<?php echo htmlspecialchars($searchTerm, ENT_QUOTES, 'UTF-8'); ?>"</h2>
+            <!-- ===== Find Patron ===== -->
+            <div class="lookup-card">
+                <h3>Find Patron</h3>
 
-        <?php if (!empty($results)): ?>
-            <table border="1" cellpadding="8">
-                <thead>
-                    <tr>
-                        <th>Patron</th>
-                        <th>Membership Expiration</th>
-                        <th>Item Type</th>
-                        <th>Item Status</th>
-                        <th>Checkout Date</th>
-                        <th>Due Date</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($results as $row): ?>
+                <form id="patronForm">
+                    <label for="patronID">Patron ID</label>
+
+                    <div class="input-row">
+                        <input
+                            type="number"
+                            id="patronID"
+                            name="patronID"
+                            min="1"
+                            placeholder="Enter Patron ID"
+                            required
+                        >
+
+                        <button type="submit">Find Patron</button>
+                    </div>
+                </form>
+
+                <div class="result-box" id="patronResult">
+                    <p>
+                        <strong>Name:</strong>
+                        <span data-field="name">--</span>
+                    </p>
+
+                    <p>
+                        <strong>Membership Expiration:</strong>
+                        <span data-field="expiration">--</span>
+                    </p>
+
+                    <p>
+                        <strong>Active Checkouts:</strong>
+                        <span data-field="activeCheckouts">--</span>
+                    </p>
+
+                    <p>
+                        <strong>Outstanding Fines:</strong>
+                        <span data-field="outstandingFines">--</span>
+                    </p>
+
+                    <p>
+                        <strong>Checkout Eligibility:</strong>
+                        <span data-field="eligibility">--</span>
+                    </p>
+
+                    <p class="error" data-field="error" hidden></p>
+                </div>
+            </div>
+
+            <!-- ===== Find Item ===== -->
+            <div class="lookup-card">
+                <h3>Find Item</h3>
+
+                <form id="itemForm">
+                    <label for="itemCopyID">Item Copy ID</label>
+
+                    <div class="input-row">
+                        <input
+                            type="number"
+                            id="itemCopyID"
+                            name="itemCopyID"
+                            min="1000"
+                            placeholder="Enter Item Copy ID"
+                            required
+                        >
+
+                        <button type="submit">
+                            Find Item
+                        </button>
+                    </div>
+                </form>
+
+                <div class="result-box" id="itemResult">
+                    <p>
+                        <strong>Title:</strong>
+                        <span data-field="title">--</span>
+                    </p>
+                    <p>
+                        <strong>Author:</strong>
+                        <span data-field="author">--</span>
+                    </p>
+                    <p>
+                        <strong>Item Copy ID:</strong>
+                        <span data-field="itemCopyID">--</span>
+                    </p>
+                    <p>
+                        <strong>Item Type:</strong>
+                        <span data-field="itemType">--</span>
+                    </p>
+                    <p>
+                        <strong>Branch:</strong>
+                        <span data-field="branch">--</span>
+                    </p>
+                    <p>
+                        <strong>Status:</strong>
+                        <span data-field="status">--</span>
+                    </p>
+                    <p class="error" data-field="error" hidden></p>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ===== Checkout Summary ===== -->
+        <section class="checkout-card">
+
+            <div class="checkout-summary">
+                <h3>Checkout Summary</h3>
+
+                <p>
+                    <strong>Selected Patron:</strong>
+                    <span data-field="patronName">--</span>
+                </p>
+                <p>
+                    <strong>Title:</strong>
+                    <span data-field="title">--</span>
+                </p>
+                <p>
+                    <strong>Author:</strong>
+                    <span data-field="author">--</span>
+                </p>
+                <p>
+                    <strong>Item Copy ID:</strong>
+                    <span data-field="itemCopyID">--</span>
+                </p>
+                <p>
+                    <strong>Branch:</strong>
+                    <span data-field="branch">--</span>
+                </p>
+                <p>
+                    <strong>Item Type:</strong>
+                    <span data-field="itemType">--</span>
+                </p>
+                <p class="error" data-field="error" hidden></p>
+            </div>
+
+            <form id="checkoutForm">
+
+                <input type="hidden" name="patronID" value="">
+                <input type="hidden" name="itemCopyID" value="">
+
+                <button class="checkout-button" type="submit">Record Checkout</button>
+
+            </form>
+
+        </section>
+
+        <!-- ===== Confirmation ===== -->
+        <section class="confirmation-card" id="confirmationCard" hidden>
+
+            <h3>Checkout Recorded</h3>
+
+            <div class="confirmation-details">
+
+                <p>
+                    <strong>Checkout ID:</strong>
+                    <span data-field="checkoutID">--</span>
+                </p>
+                <p>
+                    <strong>Patron:</strong>
+                    <span data-field="patron">--</span>
+                </p>
+                <p>
+                    <strong>Title:</strong>
+                    <span data-field="title">--</span>
+                </p>
+                <p>
+                    <strong>Author:</strong>
+                    <span data-field="author">--</span>
+                </p>
+                <p>
+                    <strong>Branch:</strong>
+                    <span data-field="branch">--</span>
+                </p>
+                <p>
+                    <strong>Item Copy ID:</strong>
+                    <span data-field="itemCopyID">--</span>
+                </p>
+                <p>
+                    <strong>Checkout Date:</strong>
+                    <span data-field="checkoutDate">--</span>
+                </p>
+                <p>
+                    <strong>Due Date:</strong>
+                    <span data-field="dueDate">--</span>
+                </p>
+                <p class="error" data-field="error" hidden></p>
+
+            </div>
+
+            <button type="button" id="doneButton">Done</button>
+
+        </section>
+
+        <!-- ===== Current Checkouts Table ===== -->
+        <section class="current-checkouts">
+
+            <div class="table-heading">
+                <h2>Current Checkouts</h2>
+                <button type="button" id="addItemBtn">Add Item Copy</button>
+            </div>
+
+            <div class="table-container">
+
+                <table>
+
+                    <thead>
                         <tr>
-                            <td><?php echo htmlspecialchars($row['patron'],                ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo htmlspecialchars($row['membership_expiration'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo htmlspecialchars($row['item_type'],             ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo htmlspecialchars($row['item_status'],           ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo htmlspecialchars($row['checkout_date'],         ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo htmlspecialchars($row['due_date'] ?? 'N/A',     ENT_QUOTES, 'UTF-8'); ?></td>
+                            <th>Checkout ID</th>
+                            <th>Patron</th>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Item Copy ID</th>
+                            <th>Item Type</th>
+                            <th>Checkout Date</th>
+                            <th>Due Date</th>
                         </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        <?php else: ?>
-            <p class="no-results">No patrons matched your search query.</p>
-        <?php endif; ?>
-    <?php endif; ?>
+                    </thead>
 
-    <div class="back-link">
-        <a href="../index.html">&larr; Back to Home</a>
+                    <tbody>
+
+                        <tr class="empty-row">
+                            <td colspan="8">
+                                Current checkout records will appear here.
+                            </td>
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- ===== Add Item ===== -->
+    <div id="addItemModal" class="modal" hidden>
+        <div class="modal-content">
+            <h3>Add Item Copy</h3>
+            <form id="addItemForm">
+                <label>
+                    Item Copy ID
+                    <input type="number" name="itemCopyID" required min="1000" step="1">
+                </label>
+                <label>
+                    Title
+                    <input type="text" name="title" required maxlength="50">
+                </label>
+                <label>
+                    Item ID
+                    <input type="number" name="itemID" required min="3000" step="1">
+                </label>
+                <label>
+                    Branch ID
+                    <input type="number" name="branchID" required min="1000" step="1">
+                </label>
+                <label>
+                    Shelf location
+                    <input type="text" name="shelfLocation" required maxlength="50">
+                </label>
+                <label>
+                    Item Type
+                    <input type="text" name="itemType" required maxlength="50">
+                </label>
+                <label>
+                    Status
+                    <select name="status" required>
+                        <option value="Available" selected>Available</option>
+                        <option value="CheckedOut">Checked Out</option>
+                        <option value="Maintenance">Maintenance</option>
+                        <option value="Retired">Retired</option>
+                    </select>
+                </label>
+                <p id="addItemMsg" class="msg"></p>
+                <div class="modal-actions">
+                    <button type="button" id="cancelAddItem">Cancel</button>
+                    <button type="submit">Save</button>
+                </div>
+            </form>
+        </div>
     </div>
 
+    <script src="js/addItem.js" defer></script>
+    <script src="js/checkout.js" defer></script>
+
 </body>
+
 </html>
