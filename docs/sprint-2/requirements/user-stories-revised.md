@@ -139,7 +139,7 @@ The team should also distinguish between recording an unresolved physical return
 
 **User Story:**
 
-As a librarian, I want to record that a returned has been renewed so that it can be correctly identified as such and the customer will not be fined.
+As a librarian, I want to renew an eligible patron's currently checked-out item so that the patron can keep the item for an additional loan period without incurring an overdue fine during the extended period.
 
 ### Acceptance Criteria
 
