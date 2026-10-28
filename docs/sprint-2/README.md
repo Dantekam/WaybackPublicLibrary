@@ -6,11 +6,14 @@ This directory contains the documentation and supporting models developed or rev
 
 **Sprint 2 Goal**
 
-Complete the core library check-in workflow so that returned items are correctly removed from patrons' active checkouts, routed to their appropriate locations, and prevented from being borrowed again until available.
+Complete the core library check-in workflow so that returned items are accurately recorded, removed from patrons' active checkouts, and routed to their appropriate locations while remaining unavailable until reshelving is completed.
 
-In response to updated client priorities, the team will also refine requirements for item renewals, reservations, and checkout usability improvements. Additional functionality will be selected based on business value, dependencies, and team capacity.
+In response to updated client priorities, the team will also refine requirements for item renewals (US-11), reservations (US-12), and checkout usability improvements.
 
-The team will preserve Sprint 1 functionality while improving consistency between requirements, models, implementation, and testing.
+The team will prioritize check-in functionality and select additional stories based on client validation, business value, technical dependencies, and available development capacity.
+
+Sprint 2 will build on Sprint 1 functionality while improving consistency between requirements, activity diagrams, database models, wireframes, implementation, and testing.
+
 
 ## Requirements
 
@@ -27,17 +30,18 @@ Overdue fine calculation will also be reviewed as part of the check-in requireme
 
 ## Models
 
-The `models` directory will contain the supporting models developed or revised for Sprint 2, including:
+The `models` directory contains or will contain supporting models developed or revised during Sprint 2, including:
 
-- Updated conceptual data model (ERD)
-- Updated relational database model
-- Record item return activity diagram
-- Route returned item activity diagram
-- Handle unscannable return activity diagram
-- Check-in and return handling wireframes
-- Use case narratives, if additional process details are needed
+- Updated conceptual data model and accompanying design notes
+- Relational database model reflecting approved schema changes
+- Combined check-in activity diagram covering item identification, return recording, overdue fine assessment, routing, and exception handling
+- Check-in wireframes aligned with the activity diagram and acceptance criteria
+- Renewal and reservation activity diagrams, subject to client clarification
+- Additional process diagrams or use case narratives where needed
 
-The existing models will be reviewed against the selected user stories and updated where necessary to support the new functionality.
+The combined check-in activity diagram supports US-05, US-06, US-07, and the proposed check-in portion of US-09.
+
+US-11 (Renewals) and US-12 (Reservations) are new high-priority items that will be represented with activity diagrams as well as per the clients validation of their importance.
 
 ## Development
 
@@ -49,18 +53,26 @@ The new check-in functionality will be integrated into the existing website rath
 
 ## Testing
 
-The team will test the implemented functionality against the acceptance criteria for each selected user story.
+The team will validate each implemented user story against its approved acceptance criteria.
 
-Testing will include:
+Check-in testing will include:
 
-- Recording a valid item return
-- Verifying that the correct checkout record is updated
-- Confirming that returned items are removed from active patron checkouts
-- Verifying that returned items remain unavailable until reshelved
-- Testing returns to the item's home branch and another branch
-- Testing unscannable items and error-bin handling
-- Checking invalid inputs and duplicate return attempts
-- Verifying applicable database changes and item statuses
+- Successfully identifying a returned item copy
+- Retrieving the correct active checkout and patron information
+- Recording the return date and return branch
+- Removing returned items from active checkout counts
+- Preventing duplicate returns
+- Handling item copies with no active checkout
+- Recording unidentified or unscannable returns in the error bin
+- Routing home-branch returns to the reshelving cart
+- Routing other-branch returns to the return truck bin
+- Keeping returned items unavailable until the appropriate reshelving process is completed
+- Calculating and recording overdue fines when included in the approved Sprint 2 scope
+- Verifying database records, status transitions, and error handling
+
+Renewal and reservation test cases will be developed after the client confirms their business rules and the team selects the implementation scope.
+
+Testing should begin during development rather than only at the end of the sprint. Results and identified defects will be documented alongside the relevant GitHub tasks.
 
 ## Task Management
 
