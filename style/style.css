@@ -17,7 +17,7 @@
   /* ---- Additional tokens derived from the palette above ---- */
   --color-primary-dark: #1B4A2F;  /* hover / focus / accent borders */
   --color-primary-soft: #8FBC8F;  /* secondary/nav background */
-  --color-text: #1e2a1e;          /* body text (matches original) */
+  --color-text: #1e2a1e;          /* body text */
   --color-error: #b00020;
 }
 
@@ -268,12 +268,27 @@ button:disabled {
 .table-heading h2 { margin: 0; }
 .table-container { overflow-x: auto; }
 
-table { width: 100%; border-collapse: collapse; }
-th, td { padding: 12px; text-align: center; border: 1px solid var(--color-border); }
-th { background: var(--color-subtle); color: var(--color-primary); }
-tbody tr:nth-child(even) { background: var(--color-page); }
-tbody tr:hover { background: var(--color-subtle); }
-.empty-row td { padding: 20px; color: var(--color-muted); }
+table { 
+  width: 100%; 
+  border-collapse: collapse; 
+}
+th, td { 
+  padding: 12px; 
+  text-align: center; 
+  border: 1px solid var(--color-border); 
+}
+th { background: var(--color-subtle); 
+color: var(--color-primary); 
+}
+tbody tr:nth-child(even) { 
+  background: var(--color-page); 
+}
+tbody tr:hover { 
+  background: var(--color-subtle); 
+}
+.empty-row td { 
+  padding: 20px; color: var(--color-muted); 
+}
 
 /* ---------- Responsive ---------- */
 @media (max-width: 750px) {

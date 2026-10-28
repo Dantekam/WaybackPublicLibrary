@@ -19,11 +19,11 @@
 
     <main class="page-container">
 
-    <nav class="library-nav" aria-label="Library tasks">
-        <a href="index.php" aria-current="page">Checkout</a>
-        <a href="add-library-item.php">Add Library Item</a>
-        <a href="return-item.php">Return Item</a>
-    </nav>
+        <nav class="library-nav" aria-label="Library tasks">
+            <a href="index.php" aria-current="page">Checkout</a>
+            <a href="add-library-item.php">Add Library Item</a>
+            <a href="return-item.php">Return Item</a>
+        </nav>
         <section class="lookup-container">
 
             <!-- ===== Find Patron ===== -->
