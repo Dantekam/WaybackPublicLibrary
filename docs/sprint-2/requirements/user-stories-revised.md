@@ -45,7 +45,7 @@ As a librarian, I want to check in a returned item so that the patron is no long
 5. The system records the return date and return branch associated with the checkout.
 6. The system updates the active checkout so that the item is no longer counted among the patron's currently borrowed items.
 7. The system confirms that the return was successfully recorded.
-8. The returned item remains unavailable for checkout until it has been routed and placed back into an available state.
+8. The system updates the item copy to an appropriate unavailable return-processing status. The item must not become available for another checkout until the required routing and reshelving steps have been completed.
 9. The system prevents duplicate returns and provides an appropriate message when no active checkout exists for the identified item.
 
 ### Client Clarifications
@@ -73,9 +73,9 @@ As a librarian, I want the system to determine where a returned item should go s
 
 1. The system identifies the returned item's home branch.
 2. The system compares the item's home branch with the branch where the item was returned.
-3. If the item is returned to its home branch, the system identifies it for placement on the reshelving cart.
-4. If the item is returned to a different branch, the system identifies it for placement in the return truck bin for transport to its home branch.
-5. The system displays the appropriate routing instruction to the librarian.
+3. If the item is returned to its home branch, the system assigns an AwaitingReshelving status and displays instructions to place the item on the reshelving cart.
+4. If the item is returned to another branch, the system assigns an AwaitingTransport status and displays instructions to place the item in the return truck bin.
+5. The librarian follows the displayed routing instructions and places the item in the designated location.
 6. The system maintains an unavailable status while the item is awaiting reshelving or transport.
 7. The system retains the routing information needed to distinguish items awaiting reshelving from those awaiting transport.
 8. An item can be marked available only after the appropriate receiving or reshelving step has been completed.
@@ -139,7 +139,7 @@ The team should also distinguish between recording an unresolved physical return
 
 **User Story:**
 
-As a librarian, I want to renew an eligible patron's currently checked-out item so that the patron can keep the item for an additional loan period without incurring an overdue fine during the extended period.
+As a librarian, I want to renew an eligible patron's existing checkout so that the patron can retain the borrowed item for an additional loan period and receive an updated due date.
 
 ### Acceptance Criteria
 
@@ -155,9 +155,15 @@ As a librarian, I want to renew an eligible patron's currently checked-out item 
 
 ### Sprint 2 Notes
 
-This story represents a new process defined by a clients updated business requirements.
+This story responds to the client's updated priority for item renewals.
 
-The team should be able to implement this system with the working process and proper error handling.
+The client has indicated that an item may be renewed up to two times following its initial checkout and that the renewal period is based on the item's type.
+
+The team must clarify whether physical presentation of the item is required, how overdue items and existing reservations affect renewal eligibility, and how the new due date is calculated.
+
+The team must also determine whether renewal history or a renewal counter is required in the database.
+
+Implementation is subject to client validation and team capacity.
 
 ---
 
@@ -167,7 +173,7 @@ The team should be able to implement this system with the working process and pr
 
 **User Story:**
 
-As a librarian, I want to record that an Item copy has been reserved so that it can be properly taken off shelf and placed on hold so the proper patron may come in and check it our when ready.
+As a librarian, I want to record a patron's reservation for an unavailable library item so that the patron can receive access to the item when it becomes available and the library can manage the hold appropriately.
 
 ### Acceptance Criteria
 
@@ -183,9 +189,15 @@ As a librarian, I want to record that an Item copy has been reserved so that it 
 
 ### Sprint 2 Notes
 
-This story represents a new process defined by a clients updated business requirements.
+This story responds to the client's updated priority for item reservations.
 
-The team should be able to implement this system with the working process and proper error handling.
+The client has indicated that reserved items may be held for a five-day pickup period.
+
+The team must clarify whether reservations apply to catalog items or individual item copies, whether multiple patrons may reserve the same item, how reservation order is determined, and when the five-day pickup period begins.
+
+The team must also determine how reserved items are identified, how reservations interact with check-in and checkout, and whether a new Reservation entity is required.
+
+Implementation is subject to client validation and team capacity.
 
 ---
 
@@ -252,14 +264,21 @@ The following functionality remains part of the overall product backlog but is n
 
 These requirements will be reviewed and prioritized based on client feedback and remaining project capacity.
 
+
 ## General Notes
 
 The following changes are proposed for Sprint 2:
 
-1. **US-05:** Expanded acceptance criteria to clarify active checkout lookup, return branch recording, duplicate return prevention, and item availability.
-2. **US-06:** Raised priority from Medium to High because routing is an essential continuation of the check-in process.
-3. **US-07:** Expanded acceptance criteria to distinguish unresolved unscannable returns from completed check-ins and support later manual identification.
-4. **US-09:** Proposed including overdue fine calculation during check-in, while leaving broader fine management for a later sprint.
+1. **US-05 – Record Item Return:** Expanded acceptance criteria to clarify active checkout lookup, return branch recording, duplicate return prevention, and item availability.
+2. **US-06 – Route Returned Item:** Raised priority to High and clarified routing instructions, return-processing statuses, and the distinction between return recording and reshelving.
+3. **US-07 – Handle Unscannable Return:** Expanded acceptance criteria to support unresolved error-bin records, manual identification, and later completion of check-in.
+4. **US-09 – Process Overdue Fine:** Proposed calculating and recording overdue fines during check-in, subject to approved Sprint 2 scope.
+5. **US-11 – Renewal of Items:** Added in response to the client's updated priorities. Renewal eligibility, due-date rules, and data requirements require additional validation.
+6. **US-12 – Reservation of Items:** Added in response to the client's updated priorities. Reservation scope, availability rules, pickup timing, and data requirements require additional validation.
+
+High-priority product backlog items are not automatically committed Sprint 2 deliverables.
+
+The team will distinguish between client-requested requirements, validated acceptance criteria, and work selected for implementation based on capacity.
 
 ## Planning Notes
 
