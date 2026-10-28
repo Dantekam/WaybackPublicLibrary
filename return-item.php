@@ -27,7 +27,7 @@
 
         <!-- ===== Return Item ===== -->
         <section class="return-pannel">
-            <div class="return-card">
+            <div class="lookup-card">
                 <h3>Return Item</h3>
 
                 <form id="returnForm">
@@ -47,7 +47,7 @@
                 </form>
             </div>
 
-            <div class="return-item" id="returnItem">
+            <div class="result-box" id="returnItem">
                 <p>
                     <strong>Author:</strong>
                     <span data-field="author">--</span>
