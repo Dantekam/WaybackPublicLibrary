@@ -71,21 +71,6 @@ try {
     $stmt->execute([$itemCopyID]);
     $checkout = $stmt->fetch();
 
-    // TODO: not sure if need right now
-    // return the item and patron info
-    /*echo json_encode([
-        'ok' => true,
-        'checkout' => [
-            'checkoutID'   => $checkout['CheckoutID'],
-            'patron'       => $checkout['FullName'];,
-            'itemCopyID'   => $itemCopyID,
-            'itemName'     => $checkout['Item']
-            'itemType'     => $checkout['ItemType'],
-            'checkoutDate' => $checkout['CheckoutDate'],
-            'dueDate'      => $checkout['DueDate'],
-        ],
-    ]);*/
-
     // 4. Change to return branch
     $stmt = $pdo->prepare(
         'UPDATE Checkout SET BranchID = ? WHERE CheckoutID = ?'
@@ -115,6 +100,21 @@ try {
         'UPDATE Checkout SET PatronID = NULL WHERE CheckoutID = ?'
     );
     $stmt->execute([$checkoutID]);
+
+    // return the item and patron info
+    echo json_encode([
+        'ok' => true,
+        'checkout' => [
+            'checkoutID' => $checkout['CheckoutID'],
+            'patron' => $checkout['FullName'];,
+            'itemCopyID' => $itemCopyID,
+            'title' => $checkout['Item']
+            'itemType' => $checkout['ItemType'],
+            'checkoutDate' => $checkout['CheckoutDate'],
+            'dueDate' => $checkout['DueDate'],
+            'status' => $checkout['Status']
+        ],
+    ]);
 
     $pdo->commit();
 
