@@ -116,17 +116,6 @@ try {
     );
     $stmt->execute([$checkoutID]);
 
-    /* DO THESE
-    The system confirms that the return was 
-    successfully recorded.
-    The returned item remains unavailable for 
-    checkout until it has been routed and placed 
-    back into an available state.
-    The system prevents duplicate returns and 
-    provides an appropriate message when no 
-    active checkout exists for the identified item.
-*/
-
     $pdo->commit();
 
 } catch (PDOException $e) {
