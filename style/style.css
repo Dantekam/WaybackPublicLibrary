@@ -331,7 +331,7 @@ tbody tr:hover {
   font-weight: bold;
 }
 
-.library-panel {
+.library-panel, .return-status {
   padding: 22px;
   margin: 20px 0;
   background: var(--color-surface);
