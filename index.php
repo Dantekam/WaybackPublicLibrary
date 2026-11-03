@@ -15,16 +15,16 @@
     <header class="site-header">
         <h1>Wayback Public Library</h1>
         <h4>Checkout a Library Item</h4>
-    </header>
-
-    <main class="page-container">
-
         <nav class="library-nav" aria-label="Library tasks">
             <a href="index.php" aria-current="page">Checkout</a>
             <a href="add-library-item.php">Add Library Item</a>
             <a href="return-item.php">Return Item</a>
             <a href="renewal.php">Renew</a>
         </nav>
+    </header>
+
+    <main class="page-container">
+
         <div class="main-layout">
             <section class="lookup-container">
 

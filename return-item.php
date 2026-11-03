@@ -15,16 +15,16 @@
     <header class="site-header">
         <h1>Wayback Public Library</h1>
         <h4>Return Item</h4>
+        <!-- Navigation row stays full-width at the top -->
+        <nav class="library-nav" aria-label="Library tasks">
+          <a href="index.php">Checkout</a>
+          <a href="add-library-item.php">Add Library Item</a>
+          <a href="return-item.php" aria-current="page">Return Item</a>
+          <a href="renewal.php">Renew</a>
+        </nav>
     </header>
 
     <main class="page-container library-page">
-
-        <nav class="library-nav" aria-label="Library tasks">
-            <a href="index.php">Checkout</a>
-            <a href="add-library-item.php">Add Library Item</a>
-            <a href="return-item.php" aria-current="page">Return Item</a>
-            <a href="renewal.php">Renew</a>
-        </nav>
 
         <!-- ===== Return Item ===== -->
         <section class="library-panel">
@@ -74,8 +74,8 @@
                 <p class="msg error" data-field="error" hidden></p>
             </div>
             <form id="returnStatus" class="library-panel">
+                <h4>Choose the Status</h4>
                 <select name="status" required>
-                    <option value="">Choose Return Staus</option>
                     <option value="checkedout">Checkout</option>
                     <option value="Maintenance">Maintenance</option>
                     <option value="Available" selected>Available</option>

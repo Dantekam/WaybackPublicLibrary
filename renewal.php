@@ -13,17 +13,16 @@
   <header class="site-header">
     <h1>Wayback Public Library</h1>
     <h4>Renewal</h4>
-  </header>
-
-  <main class="page-container library-page">
-    <!-- Navigation row stays full-width at the top -->
+        <!-- Navigation row stays full-width at the top -->
     <nav class="library-nav" aria-label="Library tasks">
       <a href="index.php">Checkout</a>
       <a href="add-library-item.php">Add Library Item</a>
       <a href="return-item.php">Return Item</a>
       <a href="renewal.php" aria-current="page">Renew</a>
     </nav>
+  </header>
 
+  <main class="page-container library-page">
     <!-- Global layout wrapper for columns -->
     <div class="main-layout">
       
