@@ -20,6 +20,7 @@
       <a href="index.php">Checkout</a>
       <a href="add-library-item.php" aria-current="page">Add Library Item</a>
       <a href="return-item.php">Return Item</a>
+      <a href="renewal.php">Renew</a>
     </nav>
 
     <form id="libraryItemForm">
@@ -93,7 +94,7 @@
 
       <div class="library-actions">
         <a href="index.php">Back to Checkout</a>
-        <button type="submit" id="saveLibraryBtn">Save Library Item</button>
+        <button type="submit" id="saveLibraryBtn" class="primary-button">Save Library Item</button>
       </div>
     </form>
   </main>

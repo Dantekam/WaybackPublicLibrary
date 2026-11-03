@@ -7,7 +7,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wayback Public Library - Checkout</title>
-    <link rel="stylesheet" href="style/style.css">
+    <link rel="stylesheet" href="../style/style.css">
 </head>
 
 <body>
@@ -74,7 +74,7 @@
                         <span data-field="eligibility">--</span>
                     </p>
 
-                    <p class="error" data-field="error" hidden></p>
+                    <p class="msg error" data-field="error" hidden></p>
                 </div>
             </div>
 
@@ -126,7 +126,7 @@
                         <strong>Status:</strong>
                         <span data-field="status">--</span>
                     </p>
-                    <p class="error" data-field="error" hidden></p>
+                    <p class="msg error" data-field="error" hidden></p>
                 </div>
             </div>
 
@@ -162,7 +162,7 @@
                     <strong>Item Type:</strong>
                     <span data-field="itemType">--</span>
                 </p>
-                <p class="error" data-field="error" hidden></p>
+                <p class="msg error" data-field="error" hidden></p>
             </div>
 
             <form id="checkoutForm">
@@ -170,7 +170,7 @@
                 <input type="hidden" name="patronID" value="">
                 <input type="hidden" name="itemCopyID" value="">
 
-                <button class="checkout-button" type="submit">Record Checkout</button>
+                <button class="primary-button" type="submit">Record Checkout</button>
 
             </form>
 
@@ -215,7 +215,7 @@
                     <strong>Due Date:</strong>
                     <span data-field="dueDate">--</span>
                 </p>
-                <p class="error" data-field="error" hidden></p>
+                <p class="msg error" data-field="error" hidden></p>
 
             </div>
 

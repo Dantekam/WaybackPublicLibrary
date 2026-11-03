@@ -17,35 +17,34 @@
         <h4>Return Item</h4>
     </header>
 
-    <main class="page-container">
+    <main class="page-container library-page">
 
         <nav class="library-nav" aria-label="Library tasks">
             <a href="index.php">Checkout</a>
             <a href="add-library-item.php">Add Library Item</a>
             <a href="return-item.php" aria-current="page">Return Item</a>
+            <a href="renewal.php">Renew</a>
         </nav>
 
         <!-- ===== Return Item ===== -->
-        <section class="return-pannel">
-            <div class="lookup-card">
-                <h3>Return Item</h3>
+        <section class="library-panel">
+            <h3>Return Item</h3>
 
-                <form id="returnForm">
-                    <label for="itemCopyID">Return ID</label>
-                    
-                    <div class="input-row">
-                        <input
-                            type="number"
-                            id="itemCopyID"
-                            name="itemCopyID"
-                            min="1000"
-                            placeholder="Enter Item Copy ID"
-                            required
-                        >
-                        <button type="submit">Find Item</button>
-                    </div>
-                </form>
-            </div>
+            <form id="returnForm">
+                <label for="itemCopyID">Return ID</label>
+
+                <div class="input-row">
+                    <input
+                        type="number"
+                        id="itemCopyID"
+                        name="itemCopyID"
+                        min="1000"
+                        placeholder="Enter Item Copy ID"
+                        required
+                    >
+                    <button type="submit">Find Item</button>
+                </div>
+            </form>
 
             <div class="result-box" id="returnItem">
                 <p>
@@ -72,9 +71,9 @@
                     <strong>Status:</strong>
                     <span data-field="status">--</span>
                 </p>
-                <p class="error" data-field="error" hidden></p>
+                <p class="msg error" data-field="error" hidden></p>
             </div>
-            <form for="return-status">
+            <form id="returnStatus" class="library-panel">
                 <select name="status" required>
                     <option value="">Choose Return Staus</option>
                     <option value="checkedout">Checkout</option>
@@ -82,8 +81,9 @@
                     <option value="Available" selected>Available</option>
                 </select>
             </form>
-            <button type="submit" id="returnLibraryItem"> Return Item</button>
-
+            <div class="library-actions">
+                <button type="submit" id="returnLibraryItem" class="primary-button">Return Item</button>
+            </div>
         </section>
     </main>
 </body>

@@ -23,91 +23,186 @@
             <a href="index.php" aria-current="page">Checkout</a>
             <a href="add-library-item.php">Add Library Item</a>
             <a href="return-item.php">Return Item</a>
+            <a href="renewal.php">Renew</a>
         </nav>
-        <section class="lookup-container">
+        <div class="main-layout">
+            <section class="lookup-container">
 
-            <!-- ===== Find Patron ===== -->
-            <div class="lookup-card">
-                <h3>Find Patron</h3>
+                <!-- ===== Find Patron ===== -->
+                <div class="lookup-card">
+                    <h3>Find Patron</h3>
 
-                <form id="patronForm">
-                    <label for="patronID">Patron ID</label>
+                    <form id="patronForm">
+                        <label for="patronID">Patron ID</label>
 
-                    <div class="input-row">
-                        <input
-                            type="number"
-                            id="patronID"
-                            name="patronID"
-                            min="1"
-                            placeholder="Enter Patron ID"
-                            required
-                        >
+                        <div class="input-row">
+                            <input
+                                type="number"
+                                id="patronID"
+                                name="patronID"
+                                min="1"
+                                placeholder="Enter Patron ID"
+                                required
+                            >
 
-                        <button type="submit">Find Patron</button>
+                            <button type="submit">Find Patron</button>
+                        </div>
+                    </form>
+
+                    <div class="result-box" id="patronResult">
+                        <p>
+                            <strong>Name:</strong>
+                            <span data-field="name">--</span>
+                        </p>
+
+                        <p>
+                            <strong>Membership Expiration:</strong>
+                            <span data-field="expiration">--</span>
+                        </p>
+            
+                        <p>
+                            <strong>Active Checkouts:</strong>
+                            <span data-field="activeCheckouts">--</span>
+                        </p>
+                        
+                        <p>
+                            <strong>Outstanding Fines:</strong>
+                            <span data-field="outstandingFines">--</span>
+                        </p>
+                        
+                        <p>
+                            <strong>Checkout Eligibility:</strong>
+                            <span data-field="eligibility">--</span>
+                        </p>
+
+                        <p class="msg error" data-field="error" hidden></p>
                     </div>
-                </form>
-
-                <div class="result-box" id="patronResult">
-                    <p>
-                        <strong>Name:</strong>
-                        <span data-field="name">--</span>
-                    </p>
-
-                    <p>
-                        <strong>Membership Expiration:</strong>
-                        <span data-field="expiration">--</span>
-                    </p>
-        
-                    <p>
-                        <strong>Active Checkouts:</strong>
-                        <span data-field="activeCheckouts">--</span>
-                    </p>
-                    
-                    <p>
-                        <strong>Outstanding Fines:</strong>
-                        <span data-field="outstandingFines">--</span>
-                    </p>
-                    
-                    <p>
-                        <strong>Checkout Eligibility:</strong>
-                        <span data-field="eligibility">--</span>
-                    </p>
-
-                    <p class="error" data-field="error" hidden></p>
                 </div>
-            </div>
 
-            <!-- ===== Find Item ===== -->
-            <div class="lookup-card">
-                <h3>Find Item</h3>
+                <!-- ===== Find Item ===== -->
+                <div class="lookup-card">
+                    <h3>Find Item</h3>
 
-                <form id="itemForm">
-                    <label for="itemCopyID">Item Copy ID</label>
+                    <form id="itemForm">
+                        <label for="itemCopyID">Item Copy ID</label>
 
-                    <div class="input-row">
-                        <input
-                            type="number"
-                            id="itemCopyID"
-                            name="itemCopyID"
-                            min="1000"
-                            placeholder="Enter Item Copy ID"
-                            required
-                        >
+                        <div class="input-row">
+                            <input
+                                type="number"
+                                id="itemCopyID"
+                                name="itemCopyID"
+                                min="1000"
+                                placeholder="Enter Item Copy ID"
+                                required
+                            >
 
-                        <button type="submit">
-                            Find Item
-                        </button>
+                            <button type="submit">
+                                Find Item
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="result-box" id="itemResult">
+                        <p>
+                            <strong>Author:</strong>
+                            <span data-field="author">--</span>
+                        </p>
+                        <p>
+                            <strong>Title:</strong>
+                            <span data-field="title">--</span>
+                        </p>
+                        <p>
+                            <strong>Item Copy ID:</strong>
+                            <span data-field="itemCopyID">--</span>
+                        </p>
+
+                        <p>
+                            <strong>Item Type:</strong>
+                            <span data-field="itemType">--</span>
+                        </p>
+                        <p>
+                            <strong>Branch:</strong>
+                            <span data-field="branchID">--</span>
+                        </p>
+                        <p>
+                            <strong>Status:</strong>
+                            <span data-field="status">--</span>
+                        </p>
+                        <p class="msg error" data-field="error" hidden></p>
                     </div>
-                </form>
+                </div>
 
-                <div class="result-box" id="itemResult">
+            </section>
+
+            <!-- ===== Checkout Summary ===== -->
+            <aside class="checkout-card">
+
+                <div class="checkout-summary">
+                    <h3>Checkout Summary</h3>
+
+                    <p>
+                        <strong>Selected Patron:</strong>
+                        <span data-field="patronName">--</span>
+                    </p>
                     <p>
                         <strong>Author:</strong>
-                        <span data-field="author">--</span>
+                        <span data-field="authorLastName" data-field="authorFirstName">--</span>
+                    </p>
+                    <p>
+
+                    <p>
+                        <strong>Item Copy ID:</strong>
+                        <span data-field="itemCopyID">--</span>
+                    </p>
+                    <p>
+                        <strong>Branch:</strong>
+                        <span data-field="branchID">--</span>
+                    </p>
+                    <p>
+                        <strong>Item Type:</strong>
+                        <span data-field="itemType">--</span>
+                    </p>
+                    <p class="msg error" data-field="error" hidden></p>
+                </div>
+
+                <form id="checkoutForm">
+
+                    <input type="hidden" name="patronID" value="">
+                    <input type="hidden" name="itemCopyID" value="">
+
+                    <button class="primary-button" type="submit">Record Checkout</button>
+
+                </form>
+
+            </aside>
+
+            <!-- ===== Confirmation ===== -->
+            <aside class="confirmation-card" id="confirmationCard" hidden>
+
+                <h3>Checkout Recorded</h3>
+
+                <div class="confirmation-details">
+
+                    <p>
+                        <strong>Checkout ID:</strong>
+                        <span data-field="checkoutID">--</span>
+                    </p>
+
+                    <p>
+                        <strong>Patron:</strong>
+                        <span data-field="patron">--</span>
+                    </p>
+                    <p>
+                        <strong>Author:</strong>
+                        <span data-field="authorLastName" data-field="authorFirstName">--</span>
                     </p>
                     <p>
                         <strong>Title:</strong>
                         <span data-field="title">--</span>
+                    </p>
+                    <p>
+                        <strong>Branch:</strong>
+                        <span data-field="branchID">--</span>
                     </p>
                     <p>
                         <strong>Item Copy ID:</strong>
@@ -115,114 +210,22 @@
                     </p>
 
                     <p>
-                        <strong>Item Type:</strong>
-                        <span data-field="itemType">--</span>
+                        <strong>Checkout Date:</strong>
+                        <span data-field="checkoutDate">--</span>
                     </p>
+
                     <p>
-                        <strong>Branch:</strong>
-                        <span data-field="branchID">--</span>
+                        <strong>Due Date:</strong>
+                        <span data-field="dueDate">--</span>
                     </p>
-                    <p>
-                        <strong>Status:</strong>
-                        <span data-field="status">--</span>
-                    </p>
-                    <p class="error" data-field="error" hidden></p>
+                    <p class="msg error" data-field="error" hidden></p>
+
                 </div>
-            </div>
 
-        </section>
+                <button type="button" id="doneButton">Done</button>
 
-        <!-- ===== Checkout Summary ===== -->
-        <section class="checkout-card">
-
-            <div class="checkout-summary">
-                <h3>Checkout Summary</h3>
-
-                <p>
-                    <strong>Selected Patron:</strong>
-                    <span data-field="patronName">--</span>
-                </p>
-                <p>
-                    <strong>Author:</strong>
-                    <span data-field="authorLastName" data-field="authorFirstName">--</span>
-                </p>
-                <p>
-
-                <p>
-                    <strong>Item Copy ID:</strong>
-                    <span data-field="itemCopyID">--</span>
-                </p>
-                <p>
-                    <strong>Branch:</strong>
-                    <span data-field="branchID">--</span>
-                </p>
-                <p>
-                    <strong>Item Type:</strong>
-                    <span data-field="itemType">--</span>
-                </p>
-                <p class="error" data-field="error" hidden></p>
-            </div>
-
-            <form id="checkoutForm">
-
-                <input type="hidden" name="patronID" value="">
-                <input type="hidden" name="itemCopyID" value="">
-
-                <button class="checkout-button" type="submit">Record Checkout</button>
-
-            </form>
-
-        </section>
-
-        <!-- ===== Confirmation ===== -->
-        <section class="confirmation-card" id="confirmationCard" hidden>
-
-            <h3>Checkout Recorded</h3>
-
-            <div class="confirmation-details">
-
-                <p>
-                    <strong>Checkout ID:</strong>
-                    <span data-field="checkoutID">--</span>
-                </p>
-
-                <p>
-                    <strong>Patron:</strong>
-                    <span data-field="patron">--</span>
-                </p>
-                <p>
-                    <strong>Author:</strong>
-                    <span data-field="authorLastName" data-field="authorFirstName">--</span>
-                </p>
-                <p>
-                    <strong>Title:</strong>
-                    <span data-field="title">--</span>
-                </p>
-                <p>
-                    <strong>Branch:</strong>
-                    <span data-field="branchID">--</span>
-                </p>
-                <p>
-                    <strong>Item Copy ID:</strong>
-                    <span data-field="itemCopyID">--</span>
-                </p>
-
-                <p>
-                    <strong>Checkout Date:</strong>
-                    <span data-field="checkoutDate">--</span>
-                </p>
-
-                <p>
-                    <strong>Due Date:</strong>
-                    <span data-field="dueDate">--</span>
-                </p>
-                <p class="error" data-field="error" hidden></p>
-
-            </div>
-
-            <button type="button" id="doneButton">Done</button>
-
-        </section>
+            </aside>
+        </div>
         
         <!-- ===== Current Checkouts Table ===== -->
         <section class="current-checkouts">
@@ -312,7 +315,6 @@
             </form>
         </div>
     </div>
-
     <script src="js/addItem.js" defer></script>
     <script src="js/checkout.js" defer></script>
 
