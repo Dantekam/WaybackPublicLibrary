@@ -101,6 +101,14 @@ try {
     );
     $stmt->execute([$checkoutID]);
 
+    $stmt = $pdo->prepare(
+            'SELECT C.ItemCopyID, C.ReturnDate, C.Status, C.CheckoutID, C.title AS Item, C.ItemType, CONCAT(P.FirstName, "", P.LastName) AS FullName, C.CheckoutDate, C.DueDate
+            FROM Checkout C JOIN Patron P ON C.PatronID = P.PatronID 
+            WHERE ItemCopyID = ?'
+        );
+    $stmt->execute([$itemCopyID]);
+    $checkout = $stmt->fetch();
+
     // return the item and patron info
     echo json_encode([
         'ok' => true,
@@ -110,9 +118,10 @@ try {
             'itemCopyID' => $itemCopyID,
             'title' => $checkout['Item']
             'itemType' => $checkout['ItemType'],
-            'checkoutDate' => $checkout['CheckoutDate'],
+            'returnDate' => $checkout['ReturnDate'],
+            'status' => $checkout['Status'],
             'dueDate' => $checkout['DueDate'],
-            'status' => $checkout['Status']
+            'returnDate' => $checkout['ReturnDate']
         ],
     ]);
 
