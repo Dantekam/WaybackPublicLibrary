@@ -10,7 +10,7 @@
 require_once __DIR__ . '/../loadEnv.php';
 
 loadEnv(__DIR__ . '/../.env');
-$endpoint = $_ENV['FIND_ITEM_URL'] ?? 'http://localhost/library/findItem.php';
+$endpoint = $_ENV['FIND_ITEM_URL'];
 
 $availableId = (int) $_ENV['FIND_ITEM_AVAILABLE_ID'];
 $unavailableId = (int) $_ENV['FIND_ITEM_UNAVAILABLE_ID'];

@@ -12,8 +12,7 @@
 require_once __DIR__ . '/../loadEnv.php';
 
 loadEnv(__DIR__ . '/../.env');
-
-$endpoint = $_ENV['FIND_PATRON_URL'];
+$url = $_ENV['FIND_PATRON_URL'];
 
 $eligibleId = (int) $_ENV['FIND_PATRON_ELIGIBLE_ID'];
 $expiredId = (int) $_ENV['FIND_PATRON_EXPIRED_ID'];
@@ -25,7 +24,7 @@ $tests = [];
 $passed = 0;
 $failed = 0;
 
-function addTest(array &$tests, string $name, string $endpoint, ?int $expectedHttp,
+function addTest(array &$tests, string $name, string $url, ?int $expectedHttp,
                  callable $assertion): void {
     $tests[] = [
         'name' => $name,
@@ -65,18 +64,18 @@ function assertTrue(bool $condition, string $message): void {
     }
 }
 
-function patronUrl(string $endpoint, ?string $id = null, bool $asArray = false): string {
+function patronUrl(string $url, ?string $id = null, bool $asArray = false): string {
     if ($id === null) {
-        return $endpoint;
+        return $url;
     }
     if ($asArray) {
-        return $endpoint . '?' . http_build_query(['patronID' => [$id]]);
+        return $url . '?' . http_build_query(['patronID' => [$id]]);
     }
-    return $endpoint . '?' . http_build_query(['patronID' => $id]);
+    return $url . '?' . http_build_query(['patronID' => $id]);
 }
 
 // Input-validation: missing parameter
-addTest($tests, 'Missing patronID', patronUrl($endpoint), 400,
+addTest($tests, 'Missing patronID', patronUrl($url), 400,
     fn($r) => assertTrue(
         ($r['json']['ok'] ?? null) === false &&
         ($r['json']['error'] ?? '') === 'Please enter a valid numeric Patron ID.',
@@ -85,7 +84,7 @@ addTest($tests, 'Missing patronID', patronUrl($endpoint), 400,
 );
 
 // Input-validation: empty parameter
-addTest($tests, 'Empty patronID', patronUrl($endpoint, ''), 400,
+addTest($tests, 'Empty patronID', patronUrl($url, ''), 400,
     fn($r) => assertTrue(
         ($r['json']['ok'] ?? null) === false,
         'Expected ok=false for an empty patronID.'
@@ -93,7 +92,7 @@ addTest($tests, 'Empty patronID', patronUrl($endpoint, ''), 400,
 );
 
 // Input-validation: zero is not a valid patron identifier
-addTest($tests, 'Zero patronID', patronUrl($endpoint, '0'), 400,
+addTest($tests, 'Zero patronID', patronUrl($url, '0'), 400,
     fn($r) => assertTrue(
         ($r['json']['ok'] ?? null) === false,
         'Expected ok=false for patronID zero.'
@@ -101,7 +100,7 @@ addTest($tests, 'Zero patronID', patronUrl($endpoint, '0'), 400,
 );
 
 // Input-validation: negative numbers are not valid identifiers
-addTest($tests, 'Negative patronID', patronUrl($endpoint, '-5'), 400,
+addTest($tests, 'Negative patronID', patronUrl($url, '-5'), 400,
     fn($r) => assertTrue(
         ($r['json']['ok'] ?? null) === false,
         'Expected ok=false for a negative patronID.'
@@ -109,7 +108,7 @@ addTest($tests, 'Negative patronID', patronUrl($endpoint, '-5'), 400,
 );
 
 // Input-validation: letters are not valid numeric identifiers
-addTest($tests, 'Non-numeric patronID', patronUrl($endpoint, 'abc'), 400,
+addTest($tests, 'Non-numeric patronID', patronUrl($url, 'abc'), 400,
     fn($r) => assertTrue(
         ($r['json']['ok'] ?? null) === false,
         'Expected ok=false for a non-numeric patronID.'
@@ -117,7 +116,7 @@ addTest($tests, 'Non-numeric patronID', patronUrl($endpoint, 'abc'), 400,
 );
 
 // Input-validation: decimal values are not accepted by ctype_digit()
-addTest($tests, 'Decimal patronID', patronUrl($endpoint, '1.5'), 400,
+addTest($tests, 'Decimal patronID', patronUrl($url, '1.5'), 400,
     fn($r) => assertTrue(
         ($r['json']['ok'] ?? null) === false,
         'Expected ok=false for a decimal patronID.'
@@ -125,7 +124,7 @@ addTest($tests, 'Decimal patronID', patronUrl($endpoint, '1.5'), 400,
 );
 
 // Input-validation: an array is not a string identifier
-addTest($tests, 'Array patronID', patronUrl($endpoint, '1', true), 400,
+addTest($tests, 'Array patronID', patronUrl($url, '1', true), 400,
     fn($r) => assertTrue(
         ($r['json']['ok'] ?? null) === false,
         'Expected ok=false when patronID is an array.'
@@ -133,7 +132,7 @@ addTest($tests, 'Array patronID', patronUrl($endpoint, '1', true), 400,
 );
 
 // Patron lookup: valid numeric ID with no matching patron record
-addTest($tests, 'Patron not found', patronUrl($endpoint, $missingId), 200,
+addTest($tests, 'Patron not found', patronUrl($url, $missingId), 200,
     fn($r) => assertTrue(
         ($r['json']['ok'] ?? null) === false &&
         ($r['json']['error'] ?? '') === 'Patron not found.',
@@ -143,7 +142,7 @@ addTest($tests, 'Patron not found', patronUrl($endpoint, $missingId), 200,
 
 // Eligibility: active membership, no outstanding fines, and fewer than 20 checkouts
 if ($eligibleId !== false && $eligibleId !== '') {
-    addTest($tests, 'Existing eligible patron', patronUrl($endpoint, $eligibleId), 200,
+    addTest($tests, 'Existing eligible patron', patronUrl($url, $eligibleId), 200,
         function ($r) use ($eligibleId) {
             $patron = $r['json']['patron'] ?? [];
             assertTrue(($r['json']['ok'] ?? null) === true, 'Expected ok=true.');
@@ -173,7 +172,7 @@ if ($eligibleId !== false && $eligibleId !== '') {
 
 // Eligibility: membership expiration date is before today's date (or is empty)
 if ($expiredId !== false && $expiredId !== '') {
-    addTest($tests, 'Expired membership', patronUrl($endpoint, $expiredId), 200,
+    addTest($tests, 'Expired membership', patronUrl($url, $expiredId), 200,
         function ($r) use ($expiredId) {
             $patron = $r['json']['patron'] ?? [];
             $reasons = $patron['eligibilityReasons'] ?? [];
@@ -194,7 +193,7 @@ if ($expiredId !== false && $expiredId !== '') {
 
 // Eligibility: patron has a positive outstanding fine balance
 if ($finesId !== false && $finesId !== '') {
-    addTest($tests, 'Outstanding fines', patronUrl($endpoint, $finesId), 200,
+    addTest($tests, 'Outstanding fines', patronUrl($url, $finesId), 200,
         function ($r) use ($finesId) {
             $patron = $r['json']['patron'] ?? [];
             $reasons = $patron['eligibilityReasons'] ?? [];
@@ -215,7 +214,7 @@ if ($finesId !== false && $finesId !== '') {
 
 // Eligibility: patron has 20 or more active checkouts
 if ($limitId !== false && $limitId !== '') {
-    addTest($tests, '20-item checkout limit reached', patronUrl($endpoint, $limitId), 200,
+    addTest($tests, '20-item checkout limit reached', patronUrl($url, $limitId), 200,
         function ($r) use ($limitId) {
             $patron = $r['json']['patron'] ?? [];
             $reasons = $patron['eligibilityReasons'] ?? [];
