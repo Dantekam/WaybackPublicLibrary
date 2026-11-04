@@ -174,7 +174,7 @@ The purpose is to clarify business rules, identify dependencies between user sto
 
 **Decision:** Statuses for any item searched by group or singular available to be changed to a multitude of statuses including OnHold, AwaitingReshelving, Available, InTransit, AwaitingTransit, MaintenanceRequired, NewArrivals and routing related statuses for CurrentBranch, HomeBranch, ReturnBranch to help keep track of items.
 
-## 8. Modeling and Development Implications
+## 9. Modeling and Development Implications
 
 The following changes should be reflected in the Sprint 2 models and implementation planning:
 
@@ -189,7 +189,7 @@ The following changes should be reflected in the Sprint 2 models and implementat
 9. Preserve separate activity diagrams for the full renewal and reservation processes.
 10. Maintain consistency among acceptance criteria, activity diagrams, relational models, implementation, and tests.
 
-## 9. Remaining Decisions
+## 10. Remaining Decisions
 
 - Determine whether a patron with unpaid fines on unrelated items may complete an otherwise eligible renewal.
 - Confirm the official return date used when an unidentified item is later resolved.
