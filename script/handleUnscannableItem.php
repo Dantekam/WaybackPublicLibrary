@@ -39,7 +39,7 @@ try {
     if ($copy) {
         $stmt = $pdo->prepare(
             'UPDATE Checkout
-                SET Status = "Maintenance"
+                SET Status = "MaintenanceRequired"
                 WHERE ItemCopyID = ?'
         );
         $stmt->execute($itemCopyID);
