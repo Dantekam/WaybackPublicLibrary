@@ -160,6 +160,20 @@ The purpose is to clarify business rules, identify dependencies between user sto
 
 **Decision:** Existing patron information and eligibility displays should be reviewed for completeness. New address-verification functionality is not automatically included in Sprint 2.
 
+## 8. Statuses and Routing of Items
+
+**Q25. Should we have an item statuses page to include books in transit, awaiting shelving, on holds, etc.?
+
+**Client response:** Yes for ease of use and accessibility purposes, having a page dedicated to being able to change the routing status and general status of items would help.
+
+**Decision:** A page dedicated to statuses with minimum filters to allow easy transition of statuses of items throughout their lifecycle.
+
+**Q26. How should the changing of statuses really work?
+
+**Client response:** The items should be able to be looked at as lets say a incoming truck with items in transit to our current branch and we are able to view it and change the statuses of books from there, or with newly check in books we are able to put them on hold or awaiting reshelving, etc. With books awaiting to be shelved we are able to make the availability of all of them enabled by group or singularly without having to relook back up new ones constantly.
+
+**Decision:** Statuses for any item searched by group or singular available to be changed to a multitude of statuses including OnHold, AwaitingReshelving, Available, InTransit, AwaitingTransit, MaintenanceRequired, NewArrivals and routing related statuses for CurrentBranch, HomeBranch, ReturnBranch to help keep track of items.
+
 ## 8. Modeling and Development Implications
 
 The following changes should be reflected in the Sprint 2 models and implementation planning:
