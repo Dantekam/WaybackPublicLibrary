@@ -43,7 +43,8 @@ try {
     }
     
     // 3. marked available after reshelving complete
-
+    // TODO
+    
     // return the item and patron info
     echo json_encode([
         'ok' => true,
