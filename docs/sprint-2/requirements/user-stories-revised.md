@@ -199,6 +199,28 @@ The team must also determine how reserved items are identified, how reservations
 
 Implementation is subject to client validation and team capacity.
 
+## Additional Thought of User Stories During Development & Client Clarification
+
+## User Story-13 - All Encompassing Item Statuses
+
+**Priority:** High
+
+**User Story:**
+
+As a librarian, I want to change an items status efficiently and effectively so that I can maintain an up to date schedule and tracking of the various statuses and flow of where items will be and currently are.
+
+### Acceptance Criteria
+
+1. The librarian can update the status of an item to match where it currently is to help maintain accuracy and consistency with other processes.
+
+### Client Clarifications
+
+- Item statuses will indicate where the item currently is and should be easy to update so the head librarian can have an easy time keeping track of items.
+
+### Sprint 2 Notes
+
+This story responds to the client's answer to questions about how best to keep track of items as well as how it should work when they are being transported to other branches.
+
 ---
 
 ## Proposed Additional Scope – US-09: Process Overdue Fine
