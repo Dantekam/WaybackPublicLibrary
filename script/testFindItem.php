@@ -3,19 +3,18 @@
  * Integration tests for findItem.php.
  *
  * Run:
- *   $env:FIND_ITEM_URL="http://project3.cis.uncw.edu/WaybackPublicLibrary/findItem.php" \
- *   $env:FIND_ITEM_AVAILABLE_ID=1 
- *   $env:FIND_ITEM_UNAVAILABLE_ID=2 
- *   $env:FIND_ITEM_MISSING_ID=999999 
  *   .\php\php.exe .\script\testFindItem.php
  * Note: Test values above just examples and not actual values
  */
 // make sure to change values
-$endpoint = getenv('FIND_ITEM_URL') ?: 'http://localhost/library/findItem.php';
-$availableId = getenv('FIND_ITEM_AVAILABLE_ID');
-$unavailableId = getenv('FIND_ITEM_UNAVAILABLE_ID');
-$missingId = getenv('FIND_ITEM_MISSING_ID') ?: '999999';
-$dbErrorUrl = getenv('FIND_ITEM_DB_ERROR_URL');
+require_once __DIR__ . '/../loadEnv.php';
+
+loadEnv(__DIR__ . '/../.env');
+$endpoint = $_ENV['FIND_ITEM_URL'] ?? 'http://localhost/library/findItem.php';
+
+$availableId = (int) $_ENV['FIND_ITEM_AVAILABLE_ID'];
+$unavailableId = (int) $_ENV['FIND_ITEM_UNAVAILABLE_ID'];
+$missingId = (int) ($_ENV['FIND_ITEM_MISSING_ID'] ?? 999999);
 
 $tests = [];
 $passed = 0;
@@ -42,7 +41,6 @@ function requestJson(string $url): array {
     $body = curl_exec($ch);
     $curlError = curl_error($ch);
     $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
 
     if ($body === false) {
         throw new RuntimeException("HTTP request failed: $curlError");
