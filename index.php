@@ -18,7 +18,7 @@
         <nav class="library-nav" aria-label="Library tasks">
             <a href="index.php" aria-current="page">Checkout</a>
             <a href="add-library-item.php">Add Library Item</a>
-            <a href="return-item.php">Return Item</a>
+            <a href="return-item.php">Checkin</a>
             <a href="renewal.php">Renew</a>
         </nav>
     </header>
@@ -59,7 +59,14 @@
                             <strong>Membership Expiration:</strong>
                             <span data-field="expiration">--</span>
                         </p>
-            
+                        <p>
+                            <strong>Email:</strong>
+                            <span data-field="email">--</span>
+                        </p>
+                        <p>
+                            <strong>Phone Number:</strong>
+                            <span data-field="phone_number">--</span>
+                        </p>
                         <p>
                             <strong>Active Checkouts:</strong>
                             <span data-field="activeCheckouts">--</span>
@@ -248,13 +255,16 @@
                             <th>Item Type</th>
                             <th>Checkout Date</th>
                             <th>Due Date</th>
+                            <th>Return BranchID</th>
+                            <th>Return Date</th>
+                            <th>Renewal Count</th>
                         </tr>
                     </thead>
 
                     <tbody>
 
                         <tr class="empty-row">
-                            <td colspan="8">
+                            <td colspan="11">
                                 Current checkout records will appear here.
                             </td>
                         </tr>

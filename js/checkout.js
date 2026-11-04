@@ -75,7 +75,7 @@
 
   function clearPatronDisplay() {
     for (const field of [
-      'name', 'expiration', 'activeCheckouts',
+      'name', 'expiration', 'email', 'phone_number', 'activeCheckouts',
       'outstandingFines', 'eligibility'
     ]) {
       setField(patronResult, field, '--');
@@ -197,7 +197,10 @@
       checkout.itemCopyID,
       checkout.itemType,
       checkout.checkoutDate,
-      checkout.dueDate
+      checkout.dueDate,
+      checkout.returnBranchID,
+      checkout.returnDate,
+      checkout.renewalCount
     ];
 
     for (const value of values) {

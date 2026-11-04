@@ -25,6 +25,9 @@ try {
             i.ItemType AS itemType,
             c.CheckOutDate AS checkoutDate,
             c.DueDate AS dueDate
+            c.ReturnDate as returnDate
+            b.BranchID as branchID
+            c.RenewalCount as renewalCount
          FROM CheckOut AS c
          INNER JOIN Patron AS p
             ON c.PatronID = p.PatronID

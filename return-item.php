@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wayback Public Library - Return Item</title>
+    <title>Wayback Public Library - Checkin</title>
     <link rel="stylesheet" href="style/style.css">
 </head>
 
@@ -14,12 +14,12 @@
 
     <header class="site-header">
         <h1>Wayback Public Library</h1>
-        <h4>Return Item</h4>
+        <h4>Checkin</h4>
         <!-- Navigation row stays full-width at the top -->
         <nav class="library-nav" aria-label="Library tasks">
           <a href="index.php">Checkout</a>
           <a href="add-library-item.php">Add Library Item</a>
-          <a href="return-item.php" aria-current="page">Return Item</a>
+          <a href="return-item.php" aria-current="page">Checkin</a>
           <a href="renewal.php">Renew</a>
         </nav>
     </header>
@@ -28,7 +28,7 @@
 
         <!-- ===== Return Item ===== -->
         <section class="library-panel">
-            <h3>Return Item</h3>
+            <h3>Checkin Item</h3>
 
             <form id="returnForm">
                 <label for="itemCopyID">Return ID</label>
@@ -82,7 +82,7 @@
                 </select>
             </form>
             <div class="library-actions">
-                <button type="submit" id="returnLibraryItem" class="primary-button">Return Item</button>
+                <button type="submit" id="checkinLibraryItem" class="primary-button">Return Item</button>
             </div>
         </section>
     </main>

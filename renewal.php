@@ -17,7 +17,7 @@
     <nav class="library-nav" aria-label="Library tasks">
       <a href="index.php">Checkout</a>
       <a href="add-library-item.php">Add Library Item</a>
-      <a href="return-item.php">Return Item</a>
+      <a href="return-item.php">Checkin</a>
       <a href="renewal.php" aria-current="page">Renew</a>
     </nav>
   </header>
