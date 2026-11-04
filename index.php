@@ -1,5 +1,3 @@
-<?php
-?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -129,7 +127,7 @@
                         </p>
                         <p>
                             <strong>Branch:</strong>
-                            <span data-field="branchID">--</span>
+                            <span data-field="branch">--</span>
                         </p>
                         <p>
                             <strong>Status:</strong>
@@ -153,17 +151,19 @@
                     </p>
                     <p>
                         <strong>Author:</strong>
-                        <span data-field="authorLastName" data-field="authorFirstName">--</span>
+                        <span data-field="author">--</span>
                     </p>
                     <p>
-
+                        <strong>Title:</strong>
+                        <span data-field="title">--</span>
+                    </p>
                     <p>
                         <strong>Item Copy ID:</strong>
                         <span data-field="itemCopyID">--</span>
                     </p>
                     <p>
                         <strong>Branch:</strong>
-                        <span data-field="branchID">--</span>
+                        <span data-field="branch">--</span>
                     </p>
                     <p>
                         <strong>Item Type:</strong>
@@ -201,7 +201,7 @@
                     </p>
                     <p>
                         <strong>Author:</strong>
-                        <span data-field="authorLastName" data-field="authorFirstName">--</span>
+                        <span data-field="author">--</span>
                     </p>
                     <p>
                         <strong>Title:</strong>
@@ -209,7 +209,7 @@
                     </p>
                     <p>
                         <strong>Branch:</strong>
-                        <span data-field="branchID">--</span>
+                        <span data-field="branch">--</span>
                     </p>
                     <p>
                         <strong>Item Copy ID:</strong>
@@ -261,7 +261,7 @@
                         </tr>
                     </thead>
 
-                    <tbody>
+                    <tbody id="checkoutsBody">
 
                         <tr class="empty-row">
                             <td colspan="11">

@@ -48,10 +48,10 @@
   const confirmationCard = $('#confirmationCard');
   const doneButton = $('#doneButton');
 
-  // Supports the existing HTML without modifying index.php.
-  const checkoutsBody =
-    $('#checkoutsBody') ||
-    $('.current-checkouts tbody');
+  const checkoutsBody = $('#checkoutsBody');
+  const checkoutColumnCount =
+    checkoutsBody?.closest('table')
+      ?.querySelectorAll('thead th').length ?? 0;
 
   if (!patronForm || !patronResult ||
       !itemForm || !itemResult ||
@@ -177,7 +177,7 @@
     row.className = 'empty-row';
 
     const cell = document.createElement('td');
-    cell.colSpan = 8;
+    cell.colSpan = checkoutColumnCount;
     cell.textContent = message;
 
     row.appendChild(cell);
