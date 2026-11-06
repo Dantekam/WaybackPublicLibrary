@@ -18,6 +18,7 @@
             <a href="add-library-item.php">Add Library Item</a>
             <a href="return-item.php">Checkin</a>
             <a href="renewal.php">Renew</a>
+            <a href="all-items.php">All Items</a>
         </nav>
     </header>
 

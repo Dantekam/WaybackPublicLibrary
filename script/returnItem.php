@@ -1,15 +1,14 @@
 <?php
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 
-//Db Connection
 require __DIR__ . '/db_connect.php';
 
 $itemCopyID = $_POST['itemCopyID'] ?? '';
-$branchID = $_POST['branchID'] ?? '';
+$branchID = $_POST['returnBranchID'] ?? $_POST['branchID'] ?? '';
 
-if (!ctype_digit((string)$branchID) || !ctype_digit((string)$itemCopyID)) {
+if (!ctype_digit((string)$itemCopyID) || (int)$itemCopyID <= 0 || !ctype_digit((string)$branchID) || (int)$branchID <= 0) {
     http_response_code(400);
-    echo json_encode(['ok' => false, 'error' => 'Missing or invalid branch/item.']);
+    echo json_encode(['ok' => false, 'error' => 'Missing or invalid item copy or return branch.']);
     exit;
 }
 
@@ -19,109 +18,81 @@ $branchID = (int)$branchID;
 try {
     $pdo->beginTransaction();
 
-    // 1. Confirm item copy exists, is open, and grab its type
     $stmt = $pdo->prepare(
-        'SELECT ItemType, Status
+        'SELECT ItemCopyID, Status, CurrentBranchID, HomeBranchID
            FROM Item_Copy
           WHERE ItemCopyID = ?
           FOR UPDATE'
     );
     $stmt->execute([$itemCopyID]);
-    $copy = $stmt->fetch();
+    $copy = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$copy) {
         $pdo->rollBack();
         echo json_encode(['ok' => false, 'error' => 'Item copy not found.']);
         exit;
     }
-    if (strcasecmp($copy['Status'], 'Open') !== 0) {
-        $pdo->rollBack();
-        echo json_encode(['ok' => false, 'error' => 'Item is not available for checkout.']);
-        exit;
-    }
 
-    // 2. Confirm branch exists
     $stmt = $pdo->prepare(
-        'SELECT BranchName
-           FROM Branch
-          WHERE BranchID = ?'
-    );
-    $stmt->execute([$branchID]);
-    $branchName = trim($stmt->fetch());
-    $branchName = strtolower($branchName);
-
-    $newStatus = '';
-    if (!$branchName) {
-        $pdo->rollBack();
-        echo json_encode(['ok' => false, 'error' => 'Branch not found.']);
-        exit;
-    }
-    if ($branchName == 'Central Library') {
-        $newStatus = 'Available';
-    } else {
-        $newStatus = 'Open';
-    }
-
-    // 3. Get active checkout info 
-    $stmt = $pdo->prepare(
-        'SELECT C.CheckoutID, C.title AS Item, C.ItemType, CONCAT(P.FirstName, "", P.LastName) AS FullName, C.CheckoutDate, C.DueDate
-           FROM Checkout C JOIN Patron P ON C.PatronID = P.PatronID 
-          WHERE ItemCopyID = ?'
+        'SELECT CheckOutID, PatronID, DueDate, ReturnDate, RenewalCount
+           FROM CheckOut
+          WHERE ItemCopyID = ? AND ReturnDate IS NULL
+          ORDER BY CheckOutID DESC
+          LIMIT 1
+          FOR UPDATE'
     );
     $stmt->execute([$itemCopyID]);
-    $checkout = $stmt->fetch();
+    $checkout = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // 4. Change to return branch
+    if (!$checkout) {
+        $pdo->rollBack();
+        echo json_encode(['ok' => false, 'error' => 'No active checkout exists for this item copy.']);
+        exit;
+    }
+
+    $branchCheck = $pdo->prepare('SELECT BranchID FROM Branch WHERE BranchID = ?');
+    $branchCheck->execute([$branchID]);
+    if (!$branchCheck->fetch()) {
+        $pdo->rollBack();
+        echo json_encode(['ok' => false, 'error' => 'Return branch not found.']);
+        exit;
+    }
+
+    $returnDate = (new DateTime())->format('Y-m-d');
+
     $stmt = $pdo->prepare(
-        'UPDATE Checkout SET BranchID = ? WHERE CheckoutID = ?'
+        'UPDATE CheckOut
+            SET ReturnBranchID = ?, ReturnDate = ?, DueDate = NULL
+          WHERE CheckOutID = ?'
     );
-    $stmt->execute([$branchID, $checkoutID]);
+    $stmt->execute([$branchID, $returnDate, $checkout['CheckOutID']]);
 
-    // 5. Change status of item
     $stmt = $pdo->prepare(
-        'UPDATE Checkout SET Status = ? WHERE CheckoutID = ?'
+        'UPDATE Item_Copy
+            SET CurrentBranchID = ?, Status = "Available"
+          WHERE ItemCopyID = ?'
     );
-    $stmt->execute([$newStatus, $checkoutID]);
-
-    // 6. Remove Due Date
-    $stmt = $pdo->prepare(
-        'UPDATE Checkout SET DueDate = NULL WHERE CheckoutID = ?'
-    );
-    $stmt->execute([$newStatus, $checkoutID]);
-
-    # 7. Enter return date as current date
-    $stmt = $pdo->prepare(
-        'UPDATE Checkout SET ReturnDate = CURDATE() WHERE CheckoutID = ?'
-    );
-    $stmt->execute([$checkoutID]);
-
-    // 9. remove patron from checkout
-    $stmt = $pdo->prepare(
-        'UPDATE Checkout SET PatronID = NULL WHERE CheckoutID = ?'
-    );
-    $stmt->execute([$checkoutID]);
-
-    // return the item and patron info
-    echo json_encode([
-        'ok' => true,
-        'checkout' => [
-            'checkoutID' => $checkout['CheckoutID'],
-            'patron' => $checkout['FullName'];,
-            'itemCopyID' => $itemCopyID,
-            'title' => $checkout['Item']
-            'itemType' => $checkout['ItemType'],
-            'checkoutDate' => $checkout['CheckoutDate'],
-            'dueDate' => $checkout['DueDate'],
-            'status' => $checkout['Status']
-        ],
-    ]);
+    $stmt->execute([$branchID, $itemCopyID]);
 
     $pdo->commit();
 
+    echo json_encode([
+        'ok' => true,
+        'message' => 'Item checked in successfully.',
+        'checkout' => [
+            'checkoutID' => (int)$checkout['CheckOutID'],
+            'itemCopyID' => $itemCopyID,
+            'returnBranchID' => $branchID,
+            'dueDate' => null,
+            'returnDate' => $returnDate,
+            'status' => 'Available'
+        ]
+    ]);
 } catch (PDOException $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
+    error_log('return-item: ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['ok' => false, 'error' => 'Could not return checkout.']);
+    echo json_encode(['ok' => false, 'error' => 'Could not record the return.']);
 }

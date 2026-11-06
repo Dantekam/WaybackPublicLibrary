@@ -8,83 +8,72 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wayback Public Library - Checkin</title>
     <link rel="stylesheet" href="style/style.css">
+    <script src="js/checkin.js" defer></script>
 </head>
 
 <body>
-
     <header class="site-header">
         <h1>Wayback Public Library</h1>
         <h4>Checkin</h4>
-        <!-- Navigation row stays full-width at the top -->
         <nav class="library-nav" aria-label="Library tasks">
-          <a href="index.php">Checkout</a>
-          <a href="add-library-item.php">Add Library Item</a>
-          <a href="return-item.php" aria-current="page">Checkin</a>
-          <a href="renewal.php">Renew</a>
+            <a href="index.php">Checkout</a>
+            <a href="add-library-item.php">Add Library Item</a>
+            <a href="return-item.php" aria-current="page">Checkin</a>
+            <a href="renewal.php">Renew</a>
+            <a href="all-items.php">All Items</a>
         </nav>
     </header>
 
     <main class="page-container library-page">
+        <div class="main-layout">
+            <section class="library-panel lookup-card">
+                <h3>Check In Item</h3>
 
-        <!-- ===== Return Item ===== -->
-        <section class="library-panel">
-            <h3>Checkin Item</h3>
+                <form id="checkinLookupForm">
+                    <label for="itemCopyID">Item Copy ID</label>
+                    <div class="input-row">
+                        <input type="number" id="itemCopyID" name="itemCopyID" min="1" placeholder="Enter Item Copy ID" required>
+                        <button type="submit">Find Item</button>
+                    </div>
+                </form>
 
-            <form id="returnForm">
-                <label for="itemCopyID">Return ID</label>
-
-                <div class="input-row">
-                    <input
-                        type="number"
-                        id="itemCopyID"
-                        name="itemCopyID"
-                        min="1000"
-                        placeholder="Enter Item Copy ID"
-                        required
-                    >
-                    <button type="submit">Find Item</button>
+                <div class="result-box" id="checkinResult">
+                    <p><strong>Patron:</strong> <span data-field="patronName">--</span></p>
+                    <p><strong>Author:</strong> <span data-field="author">--</span></p>
+                    <p><strong>Title:</strong> <span data-field="title">--</span></p>
+                    <p><strong>Item Copy ID:</strong> <span data-field="itemCopyID">--</span></p>
+                    <p><strong>Item Type:</strong> <span data-field="itemType">--</span></p>
+                    <p><strong>Current Branch:</strong> <span data-field="branchName">--</span></p>
+                    <p><strong>Due Date:</strong> <span data-field="dueDate">--</span></p>
+                    <p><strong>Status:</strong> <span data-field="status">--</span></p>
+                    <p class="msg error" data-field="error" hidden></p>
                 </div>
-            </form>
+            </section>
 
-            <div class="result-box" id="returnItem">
-                <p>
-                    <strong>Author:</strong>
-                    <span data-field="author">--</span>
-                </p>
-                <p>
-                    <strong>Title:</strong>
-                    <span data-field="title">--</span>
-                </p>
-                <p>
-                    <strong>Item Copy ID:</strong>
-                    <span data-field="itemCopyID">--</span>
-                </p>
-                <p>
-                    <strong>Item Type:</strong>
-                    <span data-field="itemType">--</span>
-                </p>
-                <p>
-                    <strong>Branch:</strong>
-                    <span data-field="branchID">--</span>
-                </p>
-                <p>
-                    <strong>Status:</strong>
-                    <span data-field="status">--</span>
-                </p>
-                <p class="msg error" data-field="error" hidden></p>
-            </div>
-            <form id="returnStatus" class="library-panel">
-                <h4>Choose the Status</h4>
-                <select name="status" required>
-                    <option value="checkedout">Checkout</option>
-                    <option value="Maintenance">Maintenance</option>
-                    <option value="Available" selected>Available</option>
-                </select>
-            </form>
-            <div class="library-actions">
-                <button type="submit" id="checkinLibraryItem" class="primary-button">Return Item</button>
-            </div>
-        </section>
+            <aside class="checkout-card sidebar-wrapper">
+                <div class="checkout-summary">
+                    <h3>Checkin Summary</h3>
+                    <p><strong>Item Copy ID:</strong> <span data-field="summaryCopyID">--</span></p>
+                    <p><strong>Due Date:</strong> <span data-field="summaryDueDate">--</span></p>
+                    <p><strong>Checkin Date:</strong> <span data-field="summaryCheckinDate">--</span></p>
+                    <p><strong>Days Overdue:</strong> <span data-field="summaryDaysOverdue">--</span></p>
+                    <p><strong>Fine Assessed:</strong> <span data-field="summaryFine">--</span></p>
+                </div>
+
+                <form id="checkinForm">
+                    <input type="hidden" name="itemCopyID" value="">
+                    <label for="returnBranchID">Return Branch</label>
+                    <div class="input-row">
+                        <select id="returnBranchID" name="returnBranchID" required>
+                            <option value="">Select a branch</option>
+                        </select>
+                    </div>
+                    <div class="library-actions">
+                        <button type="submit" id="checkinLibraryItem" class="primary-button">Record Return</button>
+                    </div>
+                </form>
+            </aside>
+        </div>
     </main>
 </body>
 
