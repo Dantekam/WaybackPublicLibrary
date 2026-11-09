@@ -312,7 +312,7 @@
         </div>
     </div>
     <script src="js/addItem.js" defer></script>
-    <script src="js/checkout.js" defer></script>
+    <script src="js/checkout.js?v=20261109-2" defer></script>
 
 </body>
 
