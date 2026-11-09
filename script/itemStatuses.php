@@ -1,3 +1,4 @@
+
 <?php
 header('Content-Type: application/json; charset=utf-8');
 require __DIR__ . '/db_connect.php';
@@ -13,7 +14,9 @@ function loadInventory($pdo) {
     $branch = trim((string)($_GET['branchID'] ?? ''));
     $status = trim((string)($_GET['status'] ?? ''));
     $routing = trim((string)($_GET['routingStatus'] ?? ''));
-    $destination = trim((string)($_GET['destinationBranchID'] ?? ''));
+    $destination = trim(
+        (string)($_GET['destinationBranchID'] ?? '')
+    );
 
     $sql = '
         SELECT
@@ -44,6 +47,7 @@ function loadInventory($pdo) {
             CAST(ic.ItemCopyID AS CHAR) LIKE ?
             OR COALESCE(i.Title, ic.Title) LIKE ?
         )';
+
         $params[] = '%' . $search . '%';
         $params[] = '%' . $search . '%';
     }
@@ -75,7 +79,8 @@ function loadInventory($pdo) {
 
     $branches = $pdo->query(
         'SELECT BranchID AS id, BranchName AS name
-         FROM Branch ORDER BY BranchName'
+         FROM Branch
+         ORDER BY BranchName'
     )->fetchAll();
 
     reply([
@@ -85,12 +90,124 @@ function loadInventory($pdo) {
     ]);
 }
 
-function applyAction($pdo, $copy, $action) {
+function activeReservation($pdo, $copyID) {
+    $stmt = $pdo->prepare(
+        "SELECT ReservationID, PickupBranchID, Status
+         FROM Reservation
+         WHERE ItemCopyID = ?
+           AND Status IN ('Pending', 'Ready')
+         ORDER BY ReservationID
+         LIMIT 1
+         FOR UPDATE"
+    );
+
+    $stmt->execute([$copyID]);
+    return $stmt->fetch() ?: null;
+}
+
+function activeLoanCount($pdo, $copyID) {
+    $stmt = $pdo->prepare(
+        'SELECT COUNT(*)
+         FROM CheckOut
+         WHERE ItemCopyID = ?
+           AND ReturnDate IS NULL'
+    );
+
+    $stmt->execute([$copyID]);
+    return (int)$stmt->fetchColumn();
+}
+
+function applyAction(
+    $pdo,
+    $copy,
+    $action,
+    $destinationBranchID = null
+) {
     $id = (int)$copy['ItemCopyID'];
     $status = $copy['Status'];
     $routing = $copy['RoutingStatus'];
 
-    if ($status === 'CheckedOut' || $status === 'Reserved') {
+    $currentBranchID = (int)$copy['CurrentBranchID'];
+
+    if ($action === 'routeToBranch') {
+        if (!in_array(
+            $status,
+            ['Available', 'Processing'],
+            true
+        )) {
+            throw new DomainException(
+                "Copy {$id} cannot be routed while {$status}."
+            );
+        }
+
+        if (!in_array(
+            $routing,
+            [
+                'NotApplicable',
+                'AwaitingReshelving',
+                'Arrived'
+            ],
+            true
+        )) {
+            throw new DomainException(
+                "Copy {$id} is already undergoing transport."
+            );
+        }
+
+        if (!$currentBranchID) {
+            throw new DomainException(
+                "Copy {$id} has no current branch."
+            );
+        }
+
+        if ($currentBranchID === (int)$destinationBranchID) {
+            throw new DomainException(
+                "Copy {$id} is already at the destination."
+            );
+        }
+
+        if (activeLoanCount($pdo, $id) > 0) {
+            throw new DomainException(
+                "Copy {$id} still has an active checkout."
+            );
+        }
+
+        $reservation = activeReservation($pdo, $id);
+
+        if ($reservation) {
+            if ($reservation['Status'] !== 'Pending') {
+                throw new DomainException(
+                    "Copy {$id} has a ready reservation."
+                );
+            }
+
+            if ((int)$reservation['PickupBranchID'] !==
+                (int)$destinationBranchID) {
+                throw new DomainException(
+                    "Copy {$id} is reserved for a different " .
+                    "pickup branch."
+                );
+            }
+        }
+
+        $stmt = $pdo->prepare(
+            "UPDATE Item_Copy
+             SET Status = 'Processing',
+                 RoutingStatus = 'AwaitingTransport',
+                 DestinationBranchID = ?
+             WHERE ItemCopyID = ?"
+        );
+
+        $stmt->execute([
+            $destinationBranchID,
+            $id
+        ]);
+
+        return;
+    }
+
+    if ($status === 'CheckedOut' ||
+        $status === 'Reserved') {
         throw new DomainException(
             "Copy {$id} is checked out or reserved."
         );
@@ -105,11 +222,18 @@ function applyAction($pdo, $copy, $action) {
             );
         }
 
+        if (activeLoanCount($pdo, $id) > 0) {
+            throw new DomainException(
+                "Copy {$id} still has an active checkout."
+            );
+        }
+
         $stmt = $pdo->prepare(
             "UPDATE Item_Copy
              SET RoutingStatus = 'InTransit'
              WHERE ItemCopyID = ?"
         );
+
         $stmt->execute([$id]);
         return;
     }
@@ -123,6 +247,23 @@ function applyAction($pdo, $copy, $action) {
             );
         }
 
+        if (activeLoanCount($pdo, $id) > 0) {
+            throw new DomainException(
+                "Copy {$id} still has an active checkout."
+            );
+        }
+
+        $reservation = activeReservation($pdo, $id);
+
+        if ($reservation &&
+            (int)$reservation['PickupBranchID'] !==
+            (int)$copy['DestinationBranchID']) {
+            throw new DomainException(
+                "Copy {$id} is traveling to the wrong " .
+                "branch for its reservation."
+            );
+        }
+
         $stmt = $pdo->prepare(
             "UPDATE Item_Copy
              SET CurrentBranchID = DestinationBranchID,
@@ -130,10 +271,10 @@ function applyAction($pdo, $copy, $action) {
                  RoutingStatus = 'Arrived'
              WHERE ItemCopyID = ?"
         );
+
         $stmt->execute([$id]);
         return;
     }
-
 
     if ($action === 'beginReshelving') {
         if ($status !== 'Processing' ||
@@ -147,17 +288,25 @@ function applyAction($pdo, $copy, $action) {
             );
         }
 
-        // A copy already awaiting reshelving needs no
-        // additional transport or arrival step.
-        if ($routing === 'AwaitingReshelving') {
-            return;
+        if (activeReservation($pdo, $id)) {
+            throw new DomainException(
+                "Copy {$id} has an active reservation. " .
+                "Prepare its pickup instead of reshelving."
+            );
+        }
+
+        if (activeLoanCount($pdo, $id) > 0) {
+            throw new DomainException(
+                "Copy {$id} has an active checkout."
+            );
         }
 
         $stmt = $pdo->prepare(
             "UPDATE Item_Copy
-            SET RoutingStatus = 'AwaitingReshelving'
-            WHERE ItemCopyID = ?"
+             SET RoutingStatus = 'AwaitingReshelving'
+             WHERE ItemCopyID = ?"
         );
+
         $stmt->execute([$id]);
         return;
     }
@@ -174,32 +323,16 @@ function applyAction($pdo, $copy, $action) {
             );
         }
 
-        // Do not make a copy available if it has an active loan.
-        $stmt = $pdo->prepare(
-            'SELECT COUNT(*) FROM CheckOut
-             WHERE ItemCopyID = ? AND ReturnDate IS NULL'
-        );
-        $stmt->execute([$id]);
-
-        if ((int)$stmt->fetchColumn() > 0) {
+        if (activeLoanCount($pdo, $id) > 0) {
             throw new DomainException(
                 "Copy {$id} has an active checkout."
             );
         }
 
-        // Pending reservations require a separate pickup-ready
-        // operation. Do not bypass their priority.
-        $stmt = $pdo->prepare(
-            "SELECT COUNT(*) FROM Reservation
-             WHERE ItemCopyID = ?
-               AND Status IN ('Pending', 'Ready')"
-        );
-        $stmt->execute([$id]);
-
-        if ((int)$stmt->fetchColumn() > 0) {
+        if (activeReservation($pdo, $id)) {
             throw new DomainException(
                 "Copy {$id} has an active reservation. " .
-                "Process its hold before general shelving."
+                "Process its hold before shelving."
             );
         }
 
@@ -210,6 +343,7 @@ function applyAction($pdo, $copy, $action) {
                  DestinationBranchID = NULL
              WHERE ItemCopyID = ?"
         );
+
         $stmt->execute([$id]);
         return;
     }
@@ -221,6 +355,19 @@ function applyAction($pdo, $copy, $action) {
             );
         }
 
+        if (activeLoanCount($pdo, $id) > 0) {
+            throw new DomainException(
+                "Copy {$id} has an active checkout."
+            );
+        }
+
+        if (activeReservation($pdo, $id)) {
+            throw new DomainException(
+                "Copy {$id} has an active reservation. " .
+                "Cancel or resolve the hold first."
+            );
+        }
+
         $stmt = $pdo->prepare(
             "UPDATE Item_Copy
              SET Status = 'Maintenance',
@@ -228,6 +375,7 @@ function applyAction($pdo, $copy, $action) {
                  DestinationBranchID = NULL
              WHERE ItemCopyID = ?"
         );
+
         $stmt->execute([$id]);
         return;
     }
@@ -242,9 +390,11 @@ function applyAction($pdo, $copy, $action) {
         $stmt = $pdo->prepare(
             "UPDATE Item_Copy
              SET Status = 'Processing',
-                 RoutingStatus = 'NotApplicable'
+                 RoutingStatus = 'NotApplicable',
+                 DestinationBranchID = NULL
              WHERE ItemCopyID = ?"
         );
+
         $stmt->execute([$id]);
         return;
     }
@@ -258,13 +408,17 @@ try {
     }
 
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        reply(['ok' => false, 'error' => 'Method not allowed.'], 405);
+        reply([
+            'ok' => false,
+            'error' => 'Method not allowed.'
+        ], 405);
     }
 
     $action = trim((string)($_POST['action'] ?? ''));
     $ids = $_POST['itemCopyIDs'] ?? [];
 
     $allowed = [
+        'routeToBranch',
         'startTransport',
         'confirmArrival',
         'beginReshelving',
@@ -274,10 +428,14 @@ try {
     ];
 
     if (!in_array($action, $allowed, true)) {
-        reply(['ok' => false, 'error' => 'Choose a valid action.'], 400);
+        reply([
+            'ok' => false,
+            'error' => 'Choose a valid action.'
+        ], 400);
     }
 
-    if (!is_array($ids) || count($ids) === 0 ||
+    if (!is_array($ids) ||
+        count($ids) === 0 ||
         count($ids) > 100) {
         reply([
             'ok' => false,
@@ -291,16 +449,56 @@ try {
         if (!is_scalar($id) ||
             !ctype_digit((string)$id) ||
             (int)$id <= 0) {
-            reply(['ok' => false, 'error' => 'Invalid copy ID.'], 400);
+            reply([
+                'ok' => false,
+                'error' => 'Invalid copy ID.'
+            ], 400);
         }
     }
 
     sort($ids, SORT_NUMERIC);
 
+    $destinationBranchID = null;
+
+    if ($action === 'routeToBranch') {
+        $rawDestination = (string)(
+            $_POST['destinationBranchID'] ?? ''
+        );
+
+        if (!ctype_digit($rawDestination) ||
+            (int)$rawDestination <= 0) {
+            reply([
+                'ok' => false,
+                'error' => 'Select a destination branch.'
+            ], 400);
+        }
+
+        $destinationBranchID = (int)$rawDestination;
+
+        $stmt = $pdo->prepare(
+            'SELECT COUNT(*)
+             FROM Branch
+             WHERE BranchID = ?'
+        );
+
+        $stmt->execute([$destinationBranchID]);
+
+        if (!(int)$stmt->fetchColumn()) {
+            reply([
+                'ok' => false,
+                'error' => 'Destination branch does not exist.'
+            ], 400);
+        }
+    }
+
     $pdo->beginTransaction();
 
     $stmt = $pdo->prepare(
-        'SELECT ItemCopyID, Status, RoutingStatus,
+        'SELECT ItemCopyID,
+                Status,
+                RoutingStatus,
+                HomeBranchID,
+                CurrentBranchID,
                 DestinationBranchID
          FROM Item_Copy
          WHERE ItemCopyID = ?
@@ -312,26 +510,61 @@ try {
         $copy = $stmt->fetch();
 
         if (!$copy) {
-            throw new DomainException("Copy {$id} not found.");
+            throw new DomainException(
+                "Copy {$id} not found."
+            );
         }
 
-        applyAction($pdo, $copy, $action);
+        applyAction(
+            $pdo,
+            $copy,
+            $action,
+            $destinationBranchID
+        );
     }
 
     $pdo->commit();
 
+    $actionMessages = [
+        'routeToBranch' =>
+            'Transfer scheduled. Start Transport when the ' .
+            'selected copies physically leave their branch.',
+        'startTransport' =>
+            'Transport started. Confirm Arrival after delivery.',
+        'confirmArrival' =>
+            'Arrival confirmed. Current branch updated.',
+        'beginReshelving' =>
+            'Copies are awaiting reshelving.',
+        'confirmShelved' =>
+            'Copies are now available.',
+        'maintenance' =>
+            'Copies moved to maintenance.',
+        'processing' =>
+            'Copies returned to processing.'
+    ];
+
     reply([
         'ok' => true,
-        'message' => count($ids) . ' item copy/copies updated.',
+        'message' =>
+            count($ids) . ' copy/copies updated. ' .
+            $actionMessages[$action],
         'updatedCount' => count($ids)
     ]);
 
 } catch (DomainException $e) {
-    if ($pdo->inTransaction()) $pdo->rollBack();
-    reply(['ok' => false, 'error' => $e->getMessage()], 409);
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+
+    reply([
+        'ok' => false,
+        'error' => $e->getMessage()
+    ], 409);
 
 } catch (Throwable $e) {
-    if ($pdo->inTransaction()) $pdo->rollBack();
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
 
     error_log('itemStatuses: ' . $e->getMessage());
 
