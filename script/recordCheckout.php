@@ -22,7 +22,7 @@ if (!is_string($patronRaw) || !ctype_digit($patronRaw) ||
     (int)$copyRaw <= 0) {
     respond([
         'ok' => false,
-        'error' => 'Please provide valid patron and item copy IDs.'
+        'error' => 'Valid patron and item copy IDs are required.'
     ], 400);
 }
 
@@ -47,15 +47,17 @@ try {
     }
 
     if (!$patron['MembershipExpiration'] ||
-        $patron['MembershipExpiration'] < date('Y-m-d')) {
+        substr($patron['MembershipExpiration'], 0, 10)
+            < date('Y-m-d')) {
         throw new DomainException('Patron membership has expired.');
     }
 
     $stmt = $pdo->prepare(
-        'SELECT COALESCE(SUM(GREATEST(
-            COALESCE(Amount, 0) - COALESCE(AmountPaid, 0),
-            0
-        )), 0)
+        'SELECT COALESCE(
+            SUM(GREATEST(
+                COALESCE(Amount, 0) -
+                COALESCE(AmountPaid, 0), 0
+            )), 0)
          FROM Fine
          WHERE PatronID = ?'
     );
@@ -76,19 +78,25 @@ try {
 
     if ((int)$stmt->fetchColumn() >= 20) {
         throw new DomainException(
-            'Checkout denied: 20-item limit reached.'
+            'Checkout denied: patron has reached the 20-item limit.'
         );
     }
 
     $stmt = $pdo->prepare(
-        'SELECT ic.ItemCopyID, ic.Status, ic.RoutingStatus,
-                ic.CurrentBranchID,
-                i.Title, i.ItemType, i.ItemTypeID,
-                b.BranchName
+        'SELECT
+            ic.ItemCopyID,
+            ic.Status,
+            ic.RoutingStatus,
+            ic.CurrentBranchID,
+            i.ItemID,
+            i.Title,
+            i.ItemType,
+            i.ItemTypeID,
+            b.BranchName
          FROM Item_Copy ic
          JOIN ITEM i ON i.ItemID = ic.ItemID
          LEFT JOIN Branch b
-            ON b.BranchID = ic.CurrentBranchID
+           ON b.BranchID = ic.CurrentBranchID
          WHERE ic.ItemCopyID = ?
          FOR UPDATE'
     );
@@ -101,24 +109,22 @@ try {
 
     if ($copy['Status'] !== 'Available') {
         throw new DomainException(
-            'Item is not available for checkout.'
+            'Item is not available. Reserved items must be ' .
+            'checked out through Reservation Management.'
         );
     }
 
-    if (!in_array(
-        $copy['RoutingStatus'],
-        ['NotApplicable', '', null],
-        true
-    )) {
+    if ($copy['RoutingStatus'] !== 'NotApplicable') {
         throw new DomainException(
-            'Item is still in the routing or processing workflow.'
+            'Item has not completed its physical processing.'
         );
     }
 
     $stmt = $pdo->prepare(
         'SELECT COUNT(*)
          FROM CheckOut
-         WHERE ItemCopyID = ? AND ReturnDate IS NULL'
+         WHERE ItemCopyID = ?
+           AND ReturnDate IS NULL'
     );
     $stmt->execute([$copyID]);
 
@@ -138,43 +144,41 @@ try {
 
     if ((int)$stmt->fetchColumn() > 0) {
         throw new DomainException(
-            'This copy has an active reservation and cannot be checked out normally.'
+            'This copy has an active reservation.'
         );
     }
 
+    // Support older catalog records whose ItemTypeID is NULL.
+    // The type name must still match a configured Item_Type row.
     $stmt = $pdo->prepare(
         'SELECT LoanPeriodDays
          FROM Item_Type
-         WHERE ItemTypeID = ?'
+         WHERE ItemTypeID = ?
+            OR LOWER(TRIM(TypeName)) =
+               LOWER(TRIM(?))
+         ORDER BY
+            CASE WHEN ItemTypeID = ? THEN 0 ELSE 1 END
+         LIMIT 1'
     );
-    $stmt->execute([$copy['ItemTypeID']]);
+    $stmt->execute([
+        $copy['ItemTypeID'],
+        $copy['ItemType'],
+        $copy['ItemTypeID']
+    ]);
+
     $loanDays = (int)$stmt->fetchColumn();
 
     if ($loanDays <= 0) {
-        switch (strtolower(trim($copy['ItemType']))) {
-            case 'book':
-                $loanDays = 14;
-                break;
-            case 'dvd':
-            case 'movie':
-            case 'video':
-                $loanDays = 7;
-                break;
-            case 'periodical':
-                $loanDays = 1;
-                break;
-            default:
-                throw new DomainException(
-                    'Loan period not configured for this item type.'
-                );
-        }
+        throw new DomainException(
+            'No loan period is configured for this item type.'
+        );
     }
 
-    $checkoutDate = date('Y-m-d');
-    $dueDate = date(
-        'Y-m-d',
-        strtotime('+' . $loanDays . ' days')
-    );
+    $today = new DateTimeImmutable('today');
+    $checkoutDate = $today->format('Y-m-d');
+    $dueDate = $today
+        ->modify('+' . $loanDays . ' days')
+        ->format('Y-m-d');
 
     $stmt = $pdo->prepare(
         'INSERT INTO CheckOut
@@ -183,10 +187,7 @@ try {
          VALUES (?, ?, ?, ?, NULL, 0)'
     );
     $stmt->execute([
-        $patronID,
-        $copyID,
-        $checkoutDate,
-        $dueDate
+        $patronID, $copyID, $checkoutDate, $dueDate
     ]);
 
     $checkoutID = (int)$pdo->lastInsertId();
@@ -200,7 +201,7 @@ try {
     $stmt->execute([$copyID]);
 
     if ($stmt->rowCount() !== 1) {
-        throw new RuntimeException('Copy status update failed.');
+        throw new RuntimeException('Could not update copy status.');
     }
 
     $stmt = $pdo->prepare(
@@ -211,17 +212,16 @@ try {
         )
          FROM Item_Author ia
          JOIN Author a ON a.AuthorID = ia.AuthorID
-         WHERE ia.ItemID = (
-             SELECT ItemID FROM Item_Copy WHERE ItemCopyID = ?
-         )'
+         WHERE ia.ItemID = ?'
     );
-    $stmt->execute([$copyID]);
+    $stmt->execute([$copy['ItemID']]);
     $author = $stmt->fetchColumn() ?: 'Unknown';
 
     $pdo->commit();
 
     respond([
         'ok' => true,
+        'message' => 'Checkout recorded successfully.',
         'checkout' => [
             'checkoutID' => $checkoutID,
             'patronID' => $patronID,
@@ -247,9 +247,7 @@ try {
 
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
-
     error_log('recordCheckout: ' . $e->getMessage());
-
     respond([
         'ok' => false,
         'error' => 'Could not record checkout.'

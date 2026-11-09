@@ -134,7 +134,7 @@
       const checkout = data.checkout || {};
       setField('dueDate', checkout.dueDate || '--');
       setField('renewalCount', checkout.renewalCount ?? '--');
-      setField('status', 'Renewed');
+      setField('status', checkout.status || 'CheckedOut');
       alert(data.message || 'Renewal was successful.');
     } catch (error) {
       setError(error.message || 'Unable to renew the item.');

@@ -22,7 +22,7 @@ if (!is_string($copyRaw) || !ctype_digit($copyRaw) ||
     (int)$branchRaw <= 0) {
     respond([
         'ok' => false,
-        'error' => 'Valid item copy and return branch are required.'
+        'error' => 'Valid copy and return branch IDs are required.'
     ], 400);
 }
 
@@ -33,9 +33,16 @@ try {
     $pdo->beginTransaction();
 
     $stmt = $pdo->prepare(
-        'SELECT ItemCopyID, Status, HomeBranchID
-         FROM Item_Copy
-         WHERE ItemCopyID = ?
+        'SELECT
+            ic.ItemCopyID,
+            ic.Status,
+            ic.HomeBranchID,
+            ic.ItemID,
+            i.ItemType,
+            i.ItemTypeID
+         FROM Item_Copy ic
+         JOIN ITEM i ON i.ItemID = ic.ItemID
+         WHERE ic.ItemCopyID = ?
          FOR UPDATE'
     );
     $stmt->execute([$copyID]);
@@ -65,35 +72,102 @@ try {
          FOR UPDATE'
     );
     $stmt->execute([$copyID]);
-    $activeLoans = $stmt->fetchAll();
+    $loans = $stmt->fetchAll();
 
-    if (count($activeLoans) === 0) {
+    if (count($loans) !== 1) {
         throw new DomainException(
-            'No active checkout exists for this item copy.'
+            'Exactly one active checkout is required for check-in.'
         );
     }
 
-    if (count($activeLoans) > 1) {
+    if ($copy['Status'] !== 'CheckedOut') {
         throw new DomainException(
-            'Multiple active checkouts found. Manual review required.'
+            'Copy status disagrees with its active checkout. ' .
+            'Manual review is required.'
         );
     }
 
-    $checkout = $activeLoans[0];
+    $checkout = $loans[0];
+
+    $stmt = $pdo->prepare(
+        "SELECT ReservationID, PickupBranchID
+         FROM Reservation
+         WHERE ItemCopyID = ?
+           AND Status = 'Pending'
+         ORDER BY ReservationDateTime, ReservationID
+         FOR UPDATE"
+    );
+    $stmt->execute([$copyID]);
+    $holds = $stmt->fetchAll();
+
+    if (count($holds) > 1) {
+        throw new DomainException(
+            'Multiple pending reservations require manual review.'
+        );
+    }
+
+    $hold = $holds[0] ?? null;
+
+    $homeBranchID = (int)$copy['HomeBranchID'];
+
+    if ($homeBranchID <= 0) {
+        throw new DomainException(
+            'Copy has no valid home branch.'
+        );
+    }
+
+    $destinationID = $hold
+        ? (int)$hold['PickupBranchID']
+        : $homeBranchID;
+
+    if ($destinationID <= 0) {
+        throw new DomainException(
+            'Reservation has no valid pickup branch.'
+        );
+    }
 
     $today = new DateTimeImmutable('today');
     $returnDate = $today->format('Y-m-d');
-    $dueDate = $checkout['DueDate'];
 
     $daysOverdue = 0;
+    $dueDate = $checkout['DueDate'];
 
     if ($dueDate) {
-        $due = new DateTimeImmutable($dueDate);
+        $due = new DateTimeImmutable(
+            substr($dueDate, 0, 10)
+        );
 
         if ($today > $due) {
             $daysOverdue = (int)$due->diff($today)->days;
         }
     }
+
+    $stmt = $pdo->prepare(
+        'SELECT DailyFineRate
+         FROM Item_Type
+         WHERE ItemTypeID = ?
+            OR LOWER(TRIM(TypeName)) =
+               LOWER(TRIM(?))
+         ORDER BY
+           CASE WHEN ItemTypeID = ? THEN 0 ELSE 1 END
+         LIMIT 1'
+    );
+    $stmt->execute([
+        $copy['ItemTypeID'],
+        $copy['ItemType'],
+        $copy['ItemTypeID']
+    ]);
+
+    $fineRate = $stmt->fetchColumn();
+
+    if ($fineRate === false) {
+        throw new DomainException(
+            'No fine policy is configured for this item type.'
+        );
+    }
+
+    $fineRate = (int)$fineRate;
+    $fineUnits = $daysOverdue * $fineRate;
 
     $stmt = $pdo->prepare(
         'UPDATE CheckOut
@@ -108,21 +182,18 @@ try {
     ]);
 
     if ($stmt->rowCount() !== 1) {
-        throw new RuntimeException('Return update failed.');
+        throw new RuntimeException('Could not record return.');
     }
 
-    $homeBranchID = (int)$copy['HomeBranchID'];
-    $sameBranch = $homeBranchID === $branchID;
+    $sameBranch = $branchID === $destinationID;
 
-    // The copy cannot be checked out again until
-    // its physical routing or reshelving is completed.
-    $routingStatus = $sameBranch
+    $routing = $sameBranch
         ? 'AwaitingReshelving'
         : 'AwaitingTransport';
 
-    $destinationBranchID = $sameBranch
+    $nextDestination = $sameBranch
         ? null
-        : $homeBranchID;
+        : $destinationID;
 
     $stmt = $pdo->prepare(
         'UPDATE Item_Copy
@@ -132,20 +203,38 @@ try {
              DestinationBranchID = ?
          WHERE ItemCopyID = ?'
     );
-
     $stmt->execute([
         $branchID,
         'Processing',
-        $routingStatus,
-        $destinationBranchID,
+        $routing,
+        $nextDestination,
         $copyID
     ]);
 
+    $stmt = $pdo->prepare(
+        'SELECT BranchName FROM Branch WHERE BranchID = ?'
+    );
+    $stmt->execute([$destinationID]);
+    $destinationName = $stmt->fetchColumn();
+
     $pdo->commit();
 
-    $instruction = $sameBranch
-        ? 'Place item on the reshelving cart.'
-        : 'Place item in the transport bin for its home branch.';
+    if ($sameBranch && $hold) {
+        $instruction =
+            'Move copy to reservation processing. ' .
+            'Mark the hold Ready after physically verifying it.';
+    } elseif ($sameBranch) {
+        $instruction =
+            'Place copy on the reshelving cart.';
+    } elseif ($hold) {
+        $instruction =
+            'Send copy to the reservation pickup branch: ' .
+            $destinationName . '.';
+    } else {
+        $instruction =
+            'Send copy to its home branch: ' .
+            $destinationName . '.';
+    }
 
     respond([
         'ok' => true,
@@ -157,36 +246,32 @@ try {
             'returnBranchID' => $branchID,
             'returnBranchName' => $branch['BranchName'],
             'homeBranchID' => $homeBranchID,
+            'destinationBranchID' => $nextDestination,
+            'destinationBranchName' => $destinationName,
+            'reservationID' => $hold
+                ? (int)$hold['ReservationID']
+                : null,
             'dueDate' => $dueDate,
             'returnDate' => $returnDate,
             'daysOverdue' => $daysOverdue,
+            'dailyFineRate' => $fineRate,
+            'calculatedFineUnits' => $fineUnits,
             'fineAssessed' => null,
             'status' => 'Processing',
-            'routingStatus' => $routingStatus,
-            'destinationBranchID' => $destinationBranchID,
+            'routingStatus' => $routing,
             'routingInstruction' => $instruction
         ]
     ]);
 
 } catch (DomainException $e) {
-    if ($pdo->inTransaction()) {
-        $pdo->rollBack();
-    }
-
-    respond([
-        'ok' => false,
-        'error' => $e->getMessage()
-    ], 409);
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    respond(['ok' => false, 'error' => $e->getMessage()], 409);
 
 } catch (Throwable $e) {
-    if ($pdo->inTransaction()) {
-        $pdo->rollBack();
-    }
-
+    if ($pdo->inTransaction()) $pdo->rollBack();
     error_log('returnItem: ' . $e->getMessage());
-
     respond([
         'ok' => false,
-        'error' => 'Could not record the return.'
+        'error' => 'Could not record return.'
     ], 500);
 }
