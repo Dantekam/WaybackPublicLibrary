@@ -430,6 +430,20 @@ tbody tr:hover {
 .library-radio-row label { font-weight: normal; }
 .library-radio-row input[type="radio"] { accent-color: var(--color-primary-dark); }
 
+.library-panel .library-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-weight: normal;
+}
+.library-panel .library-checkbox input[type="checkbox"] {
+  display: inline-block;
+  width: auto;
+  margin: 0;
+  padding: 0;
+}
+
 .library-panel .input-row { margin: 8px 0 14px; }
 
 .library-note { color: var(--color-muted); font-size: 14px; }

@@ -2,11 +2,15 @@
   'use strict';
 
   const lookupForm = document.getElementById('checkinLookupForm');
+  const lookupInput = lookupForm?.elements.namedItem('itemCopyID');
   const resultBox = document.getElementById('checkinResult');
   const checkinForm = document.getElementById('checkinForm');
   const branchSelect = document.getElementById('returnBranchID');
+  const manualMode = document.getElementById('unscannableMode');
+  const lookupButton = document.getElementById('findCheckinItem');
+  const unscannableHelp = document.getElementById('unscannableHelp');
 
-  if (!lookupForm || !resultBox || !checkinForm || !branchSelect) {
+  if (!lookupForm || !lookupInput || !resultBox || !checkinForm || !branchSelect || !manualMode || !lookupButton || !unscannableHelp) {
     return;
   }
 
@@ -18,17 +22,14 @@
       element.textContent = value ?? '--';
     }
 
-    const summaryElement = document.querySelector(`[data-field="summary${field.charAt(0).toUpperCase() + field.slice(1)}"]`);
-    if (summaryElement && field !== 'error') {
-      const mapped = {
-        itemCopyID: 'summaryCopyID',
-        dueDate: 'summaryDueDate',
-      };
-      const key = mapped[field] || null;
-      if (key) {
-        const target = document.querySelector(`[data-field="${key}"]`);
-        if (target) target.textContent = value ?? '--';
-      }
+    const mapped = {
+      itemCopyID: 'summaryCopyID',
+      dueDate: 'summaryDueDate',
+    };
+    const summaryField = mapped[field];
+    if (summaryField) {
+      const target = document.querySelector(`[data-field="${summaryField}"]`);
+      if (target) target.textContent = value ?? '--';
     }
   }
 
@@ -37,6 +38,27 @@
     if (!element) return;
     element.textContent = message || '';
     element.hidden = !message;
+  }
+
+  function setMessage(message) {
+    const element = resultBox.querySelector('[data-field="message"]');
+    if (!element) return;
+    element.textContent = message || '';
+    element.hidden = !message;
+  }
+
+  function updateLookupMode() {
+    if (manualMode.checked) {
+      lookupButton.textContent = 'Find Manually Identified Item';
+      lookupInput.placeholder = 'Type Item Copy ID from the item';
+      unscannableHelp.textContent =
+        'Enter the Item Copy ID printed on the item. After identification, complete the regular check-in.';
+    } else {
+      lookupButton.textContent = 'Find Item';
+      lookupInput.placeholder = 'Enter Item Copy ID';
+      unscannableHelp.textContent =
+        'Barcode unreadable? Select manual identification and enter the Item Copy ID printed on the item.';
+    }
   }
 
   async function fetchJSON(url, options = {}) {
@@ -83,13 +105,12 @@
   }
 
   function clearFields() {
-    ['patronName', 'author', 'title', 'itemCopyID', 'itemType', 'branchName', 'dueDate', 'status', 'error'].forEach((field) => {
-      if (field === 'error') {
-        setError('');
-        return;
-      }
+    ['patronName', 'author', 'title', 'itemCopyID', 'itemType', 'branchName', 'dueDate', 'status'].forEach((field) => {
       setField(field, '--');
     });
+    setError('');
+    setMessage('');
+    itemInput.value = '';
   }
 
   lookupForm.addEventListener('submit', async (event) => {
@@ -118,14 +139,6 @@
       setField('status', item.status || '--');
       setField('dueDate', item.activeCheckout?.dueDate || '--');
       setField('patronName', item.activeCheckout?.patronName || 'No active checkout');
-      const checkoutDueDate = item.activeCheckout?.dueDate || '--';
-      setField('dueDate', checkoutDueDate);
-      setField('itemCopyID', item.itemCopyID);
-      const summaryCopy = document.querySelector('[data-field="summaryCopyID"]');
-      const summaryDue = document.querySelector('[data-field="summaryDueDate"]');
-      if (summaryCopy) summaryCopy.textContent = item.itemCopyID ?? '--';
-      if (summaryDue) summaryDue.textContent = checkoutDueDate;
-
       itemInput.value = String(item.itemCopyID);
 
       if (!item.activeCheckout) {
@@ -135,6 +148,10 @@
 
       if (item.branchID) {
         branchSelect.value = String(item.branchID);
+      }
+
+      if (manualMode.checked) {
+        setMessage('Item identified manually. Complete the regular check-in to record its return.');
       }
     } catch (error) {
       setError(error.message || 'Unable to find item.');
@@ -158,22 +175,27 @@
       return;
     }
 
-    const formData = new FormData(checkinForm);
-
+    const submitButton = checkinForm.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
     try {
       const data = await fetchJSON('script/returnItem.php', {
         method: 'POST',
-        body: formData,
+        body: new FormData(checkinForm),
       });
 
       setField('status', data.checkout?.status || 'Returned');
       setField('dueDate', data.checkout?.dueDate || '--');
       setField('branchName', data.checkout?.returnBranchID ? `Branch #${data.checkout.returnBranchID}` : '--');
-      alert(data.message || 'Item checked in successfully.');
+      itemInput.value = '';
+      setMessage(data.message || 'Item checked in successfully.');
     } catch (error) {
       setError(error.message || 'Unable to record the return.');
+    } finally {
+      submitButton.disabled = false;
     }
   });
 
+  manualMode.addEventListener('change', updateLookupMode);
+  updateLookupMode();
   loadBranches();
 })();

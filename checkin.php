@@ -32,9 +32,16 @@
                 <form id="checkinLookupForm">
                     <label for="itemCopyID">Item Copy ID</label>
                     <div class="input-row">
-                        <input type="number" id="itemCopyID" name="itemCopyID" min="1" placeholder="Enter Item Copy ID" required>
-                        <button type="submit">Find Item</button>
+                        <input type="number" id="itemCopyID" name="itemCopyID" min="1" placeholder="Enter Item Copy ID" aria-describedby="unscannableHelp" required>
+                        <button type="submit" id="findCheckinItem">Find Item</button>
                     </div>
+                    <p id="unscannableHelp" class="library-note">
+                        Barcode unreadable? Select manual identification and enter the Item Copy ID printed on the item.
+                    </p>
+                    <label class="library-checkbox" for="unscannableMode">
+                        <input type="checkbox" id="unscannableMode">
+                        Barcode cannot be scanned
+                    </label>
                 </form>
 
                 <div class="result-box" id="checkinResult">
@@ -47,6 +54,7 @@
                     <p><strong>Due Date:</strong> <span data-field="dueDate">--</span></p>
                     <p><strong>Status:</strong> <span data-field="status">--</span></p>
                     <p class="msg error" data-field="error" hidden></p>
+                    <p class="msg" data-field="message" aria-live="polite" hidden></p>
                 </div>
             </section>
 
