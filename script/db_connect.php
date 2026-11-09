@@ -1,4 +1,3 @@
-
 <?php
 
 $host = 'ada.cis.uncw.edu';

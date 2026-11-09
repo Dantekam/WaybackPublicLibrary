@@ -231,15 +231,12 @@
         
         <!-- ===== Current Checkouts Table ===== -->
         <section class="current-checkouts">
-
             <div class="table-heading">
                 <h2>Current Checkouts</h2>
             </div>
 
             <div class="table-container">
-
                 <table>
-
                     <thead>
                         <tr>
                             <th>Checkout ID</th>
@@ -248,28 +245,22 @@
                             <th>Author</th>
                             <th>Item Copy ID</th>
                             <th>Item Type</th>
+                            <th>Home Branch</th>
                             <th>Checkout Date</th>
                             <th>Due Date</th>
-                            <th>Return BranchID</th>
-                            <th>Return Date</th>
-                            <th>Renewal Count</th>
+                            <th>Renewals</th>
                         </tr>
                     </thead>
 
                     <tbody id="checkoutsBody">
-
                         <tr class="empty-row">
-                            <td colspan="11">
-                                Current checkout records will appear here.
+                            <td colspan="10">
+                                Search for a patron to view current checkouts.
                             </td>
                         </tr>
-
                     </tbody>
-
                 </table>
-
             </div>
-
         </section>
 
     </main>

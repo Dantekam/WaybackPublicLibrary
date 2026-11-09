@@ -184,28 +184,36 @@
     checkoutsBody.appendChild(row);
   }
 
+  
   function addCheckoutRow(checkout) {
     if (!checkoutsBody) return;
 
     const row = document.createElement('tr');
 
-    const values = [
-      checkout.checkoutID,
-      checkout.patron,
-      checkout.title,
-      checkout.author,
-      checkout.itemCopyID,
-      checkout.itemType,
-      checkout.checkoutDate,
-      checkout.dueDate,
-      checkout.returnBranchID,
-      checkout.returnDate,
-      checkout.renewalCount
+    const columns = [
+      'checkoutID',
+      'patron',
+      'title',
+      'author',
+      'itemCopyID',
+      'itemType',
+      'homeBranch',
+      'checkoutDate',
+      'dueDate',
+      'renewalCount'
     ];
 
-    for (const value of values) {
+    for (const key of columns) {
       const cell = document.createElement('td');
-      cell.textContent = value ?? '--';
+      const value = checkout[key];
+
+      cell.textContent =
+        value === null ||
+        value === undefined ||
+        value === ''
+          ? '--'
+          : String(value);
+
       row.appendChild(cell);
     }
 

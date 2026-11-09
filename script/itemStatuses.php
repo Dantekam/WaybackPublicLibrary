@@ -1,4 +1,3 @@
-
 <?php
 header('Content-Type: application/json; charset=utf-8');
 require __DIR__ . '/db_connect.php';
@@ -135,17 +134,29 @@ function applyAction($pdo, $copy, $action) {
         return;
     }
 
+
     if ($action === 'beginReshelving') {
-        if ($status !== 'Processing' || $routing !== 'Arrived') {
+        if ($status !== 'Processing' ||
+            !in_array(
+                $routing,
+                ['Arrived', 'AwaitingReshelving'],
+                true
+            )) {
             throw new DomainException(
-                "Copy {$id} has not been confirmed as arrived."
+                "Copy {$id} is not ready for reshelving."
             );
+        }
+
+        // A copy already awaiting reshelving needs no
+        // additional transport or arrival step.
+        if ($routing === 'AwaitingReshelving') {
+            return;
         }
 
         $stmt = $pdo->prepare(
             "UPDATE Item_Copy
-             SET RoutingStatus = 'AwaitingReshelving'
-             WHERE ItemCopyID = ?"
+            SET RoutingStatus = 'AwaitingReshelving'
+            WHERE ItemCopyID = ?"
         );
         $stmt->execute([$id]);
         return;

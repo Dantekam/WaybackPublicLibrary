@@ -10,39 +10,32 @@
     return;
   }
 
-  const itemInput = checkinForm.querySelector('input[name="itemCopyID"]');
+  const itemInput =
+    checkinForm.querySelector('input[name="itemCopyID"]');
+  const submitButton =
+    document.getElementById('checkinLibraryItem');
 
   function setField(field, value) {
-    const element = resultBox.querySelector(`[data-field="${field}"]`);
-    if (element) {
-      element.textContent = value ?? '--';
-    }
+    const target =
+      document.querySelector(`[data-field="${field}"]`);
 
-    const summaryElement = document.querySelector(`[data-field="summary${field.charAt(0).toUpperCase() + field.slice(1)}"]`);
-    if (summaryElement && field !== 'error') {
-      const mapped = {
-        itemCopyID: 'summaryCopyID',
-        dueDate: 'summaryDueDate',
-      };
-      const key = mapped[field] || null;
-      if (key) {
-        const target = document.querySelector(`[data-field="${key}"]`);
-        if (target) target.textContent = value ?? '--';
-      }
-    }
+    if (target) target.textContent = value ?? '--';
   }
 
   function setError(message) {
-    const element = resultBox.querySelector('[data-field="error"]');
-    if (!element) return;
-    element.textContent = message || '';
-    element.hidden = !message;
+    const target =
+      resultBox.querySelector('[data-field="error"]');
+
+    if (!target) return;
+
+    target.textContent = message || '';
+    target.hidden = !message;
   }
 
   async function fetchJSON(url, options = {}) {
     const response = await fetch(url, {
       cache: 'no-store',
-      ...options,
+      ...options
     });
 
     const text = await response.text();
@@ -50,8 +43,8 @@
 
     try {
       data = JSON.parse(text);
-    } catch (error) {
-      throw new Error('The server returned an invalid response.');
+    } catch {
+      throw new Error('Server returned invalid JSON.');
     }
 
     if (!data || typeof data !== 'object') {
@@ -65,115 +58,214 @@
     return data;
   }
 
+  function resetDetails() {
+    const fields = [
+      'patronName',
+      'author',
+      'title',
+      'itemCopyID',
+      'itemType',
+      'branchName',
+      'dueDate',
+      'status',
+      'summaryCopyID',
+      'summaryDueDate',
+      'summaryCheckinDate',
+      'summaryDaysOverdue',
+      'summaryFine',
+      'summaryReturnBranch',
+      'summaryRoutingInstruction'
+    ];
+
+    for (const field of fields) {
+      setField(field, '--');
+    }
+
+    itemInput.value = '';
+    setError('');
+  }
+
   async function loadBranches() {
     try {
-      const data = await fetchJSON('script/catalogData.php');
-      branchSelect.replaceChildren(new Option('Select a branch', ''));
+      const data =
+        await fetchJSON('script/catalogData.php');
 
-      if (Array.isArray(data.branches)) {
-        data.branches.forEach((branch) => {
-          branchSelect.appendChild(
-            new Option(`${branch.BranchName} (#${branch.BranchID})`, String(branch.BranchID))
-          );
-        });
+      branchSelect.replaceChildren(
+        new Option('Select a branch', '')
+      );
+
+      for (const branch of data.branches || []) {
+        branchSelect.appendChild(
+          new Option(
+            `${branch.BranchName} (#${branch.BranchID})`,
+            String(branch.BranchID)
+          )
+        );
       }
     } catch (error) {
-      setError(error.message || 'Unable to load branches.');
+      setError(error.message);
     }
   }
 
-  function clearFields() {
-    ['patronName', 'author', 'title', 'itemCopyID', 'itemType', 'branchName', 'dueDate', 'status', 'error'].forEach((field) => {
-      if (field === 'error') {
-        setError('');
-        return;
-      }
-      setField(field, '--');
-    });
-  }
-
-  lookupForm.addEventListener('submit', async (event) => {
+  lookupForm.addEventListener('submit', async event => {
     event.preventDefault();
-    clearFields();
+    resetDetails();
 
-    const rawValue = lookupForm.elements.namedItem('itemCopyID')?.value?.trim() ?? '';
-    if (!rawValue) {
+    const copyID =
+      lookupForm.elements.namedItem('itemCopyID')
+        ?.value?.trim() || '';
+
+    if (!copyID) {
       setError('Please enter an Item Copy ID.');
       return;
     }
 
     try {
-      const data = await fetchJSON('script/findItem.php?itemCopyID=' + encodeURIComponent(rawValue));
+      const data = await fetchJSON(
+        'script/findItem.php?itemCopyID=' +
+        encodeURIComponent(copyID)
+      );
+
       const item = data.item;
+
       if (!item) {
-        setError('Item not found.');
-        return;
+        throw new Error('Item not found.');
       }
 
       setField('author', item.author || 'Unknown');
-      setField('title', item.title || '--');
+      setField('title', item.title);
       setField('itemCopyID', item.itemCopyID);
-      setField('itemType', item.itemType || 'Unknown');
-      setField('branchName', item.branchName || item.branchID || '--');
-      setField('status', item.status || '--');
-      setField('dueDate', item.activeCheckout?.dueDate || '--');
-      setField('patronName', item.activeCheckout?.patronName || 'No active checkout');
-      const checkoutDueDate = item.activeCheckout?.dueDate || '--';
-      setField('dueDate', checkoutDueDate);
-      setField('itemCopyID', item.itemCopyID);
-      const summaryCopy = document.querySelector('[data-field="summaryCopyID"]');
-      const summaryDue = document.querySelector('[data-field="summaryDueDate"]');
-      if (summaryCopy) summaryCopy.textContent = item.itemCopyID ?? '--';
-      if (summaryDue) summaryDue.textContent = checkoutDueDate;
+      setField('itemType', item.itemType);
+      setField(
+        'branchName',
+        item.homeBranchName ||
+        (item.homeBranchID
+          ? `Branch #${item.homeBranchID}`
+          : 'Not assigned')
+      );
+      setField('status', item.status);
+      setField(
+        'patronName',
+        item.activeCheckout?.patronName ||
+        'No active checkout'
+      );
+      setField(
+        'dueDate',
+        item.activeCheckout?.dueDate || '--'
+      );
 
-      itemInput.value = String(item.itemCopyID);
+      setField('summaryCopyID', item.itemCopyID);
+      setField(
+        'summaryDueDate',
+        item.activeCheckout?.dueDate || '--'
+      );
 
-      if (!item.activeCheckout) {
-        setError('No active checkout exists for this item copy.');
+      if (!item.activeCheckout ||
+          item.status !== 'CheckedOut') {
+        setError(
+          'This copy does not have an active checkout.'
+        );
         return;
       }
 
-      if (item.branchID) {
-        branchSelect.value = String(item.branchID);
+      itemInput.value = String(item.itemCopyID);
+
+      // Home branch is the default, but staff can
+      // select the branch where the item was returned.
+      if (item.homeBranchID) {
+        branchSelect.value =
+          String(item.homeBranchID);
       }
+
     } catch (error) {
-      setError(error.message || 'Unable to find item.');
+      setError(error.message);
     }
   });
 
-  checkinForm.addEventListener('submit', async (event) => {
+  checkinForm.addEventListener('submit', async event => {
     event.preventDefault();
     setError('');
 
-    const itemCopyID = itemInput.value.trim();
-    const branchID = branchSelect.value;
-
-    if (!itemCopyID) {
-      setError('Find an item before checking it in.');
+    if (!itemInput.value) {
+      setError('Find an active checkout first.');
       return;
     }
 
-    if (!branchID) {
-      setError('Please select the return branch.');
+    if (!branchSelect.value) {
+      setError('Select the actual return branch.');
       return;
     }
 
-    const formData = new FormData(checkinForm);
+    const selectedBranch =
+      branchSelect.selectedOptions[0]?.textContent ||
+      branchSelect.value;
+
+    if (!confirm(
+      `Confirm return of copy #${itemInput.value} ` +
+      `at ${selectedBranch}?`
+    )) {
+      return;
+    }
+
+    if (submitButton) submitButton.disabled = true;
 
     try {
-      const data = await fetchJSON('script/returnItem.php', {
-        method: 'POST',
-        body: formData,
-      });
+      const data = await fetchJSON(
+        'script/returnItem.php',
+        {
+          method: 'POST',
+          body: new FormData(checkinForm)
+        }
+      );
 
-      setField('status', data.checkout?.status || 'Returned');
-      setField('dueDate', data.checkout?.dueDate || '--');
-      setField('branchName', data.checkout?.returnBranchID ? `Branch #${data.checkout.returnBranchID}` : '--');
-      alert(data.message || 'Item checked in successfully.');
+      const checkout = data.checkout || {};
+
+      setField('status', checkout.status || 'Processing');
+      setField(
+        'summaryCheckinDate',
+        checkout.returnDate || '--'
+      );
+      setField(
+        'summaryDaysOverdue',
+        checkout.daysOverdue ?? 0
+      );
+      setField(
+        'summaryFine',
+        checkout.fineAssessed === null ||
+        checkout.fineAssessed === undefined
+          ? 'Not assessed'
+          : String(checkout.fineAssessed)
+      );
+      setField(
+        'summaryReturnBranch',
+        checkout.returnBranchName || selectedBranch
+      );
+      setField(
+        'summaryRoutingInstruction',
+        checkout.routingInstruction ||
+        'Check item status management.'
+      );
+
+      // The return succeeded; prevent accidental
+      // duplicate check-in attempts.
+      itemInput.value = '';
+
+      alert(
+        'Return recorded successfully.\n\n' +
+        'Returned to: ' +
+        (checkout.returnBranchName || selectedBranch) +
+        '\n\nNext step: ' +
+        (checkout.routingInstruction ||
+         'Check item status management.')
+      );
+
     } catch (error) {
-      setError(error.message || 'Unable to record the return.');
+      setError(error.message);
+    } finally {
+      if (submitButton) submitButton.disabled = false;
     }
   });
 
+  resetDetails();
   loadBranches();
 })();

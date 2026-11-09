@@ -68,6 +68,26 @@ try {
 
     $loan = $loans[0];
 
+    $stmt = $pdo->prepare(
+        'SELECT COALESCE(
+            SUM(GREATEST(
+                COALESCE(Amount, 0) -
+                COALESCE(AmountPaid, 0), 0
+            )), 0)
+        FROM Fine
+        WHERE PatronID = ?'
+    );
+    $stmt->execute([(int)$loan['PatronID']]);
+
+    $outstandingFines = (float)$stmt->fetchColumn();
+
+    if ($outstandingFines > 0) {
+        throw new DomainException(
+            'Renewal denied: patron has outstanding fines.'
+        );
+    }
+
+
     if ((int)$loan['renewalCount'] >= 2) {
         throw new DomainException(
             'Two-renewal limit reached.'

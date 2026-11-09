@@ -1,11 +1,5 @@
 <?php
 
-/*
- Requirements:
-    Must have php installed in a separate php folder in the root project folder
- To run use the command '.\php\php.exe .\script\testFindPatron.php' in terminal
-*/
-
 $url = ''; # temporary placeholder
 
 function test($name, $query, $expectedStatus, $expectedText)

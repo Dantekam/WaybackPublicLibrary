@@ -37,7 +37,7 @@
                     <p><strong>Title:</strong> <span data-field="title">--</span></p>
                     <p><strong>Item Copy ID:</strong> <span data-field="itemCopyID">--</span></p>
                     <p><strong>Item Type:</strong> <span data-field="itemType">--</span></p>
-                    <p><strong>Current Branch:</strong> <span data-field="branchName">--</span></p>
+                    <p><strong>Home Branch:</strong> <span data-field="branchName">--</span></p>
                     <p><strong>Due Date:</strong> <span data-field="dueDate">--</span></p>
                     <p><strong>Status:</strong> <span data-field="status">--</span></p>
                     <p class="msg error" data-field="error" hidden></p>
@@ -52,6 +52,8 @@
                     <p><strong>Checkin Date:</strong> <span data-field="summaryCheckinDate">--</span></p>
                     <p><strong>Days Overdue:</strong> <span data-field="summaryDaysOverdue">--</span></p>
                     <p><strong>Fine Assessed:</strong> <span data-field="summaryFine">--</span></p>
+                    <p><strong>Returned To:</strong> <span data-field="summaryReturnBranch">--</span></p>
+                    <p><strong>Next Step:</strong> <span data-field="summaryRoutingInstruction">--</span></p>
                 </div>
 
                 <form id="checkinForm">
