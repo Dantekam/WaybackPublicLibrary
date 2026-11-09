@@ -15,13 +15,7 @@
     <header class="site-header">
         <h1>Wayback Public Library</h1>
         <h4>Checkin</h4>
-        <nav class="library-nav" aria-label="Library tasks">
-            <a href="index.php">Checkout</a>
-            <a href="add-library-item.php">Add Library Item</a>
-            <a href="return-item.php" aria-current="page">Checkin</a>
-            <a href="renewal.php">Renew</a>
-            <a href="all-items.php">All Items</a>
-        </nav>
+        <?php require __DIR__ . '/includes/navigation.php'; ?>
     </header>
 
     <main class="page-container library-page">

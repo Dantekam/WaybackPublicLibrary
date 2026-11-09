@@ -1,94 +1,202 @@
+
 <?php
 header('Content-Type: application/json; charset=utf-8');
-
 require __DIR__ . '/db_connect.php';
 
-$itemCopyID = $_POST['itemCopyID'] ?? '';
-
-if (!ctype_digit((string)$itemCopyID) || (int)$itemCopyID <= 0) {
-    http_response_code(400);
-    echo json_encode(['ok' => false, 'error' => 'Missing or invalid item copy ID.']);
+function respond($data, $code = 200) {
+    http_response_code($code);
+    echo json_encode($data);
     exit;
 }
 
-$itemCopyID = (int)$itemCopyID;
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    respond(['ok' => false, 'error' => 'POST required.'], 405);
+}
+
+$raw = $_POST['itemCopyID'] ?? '';
+
+if (!is_string($raw) || !ctype_digit($raw) ||
+    (int)$raw <= 0) {
+    respond([
+        'ok' => false,
+        'error' => 'Valid item copy ID required.'
+    ], 400);
+}
+
+$copyID = (int)$raw;
 
 try {
     $pdo->beginTransaction();
 
     $stmt = $pdo->prepare(
-        'SELECT
-            c.CheckOutID,
-            c.DueDate,
-            COALESCE(c.RenewalCount, 0) AS renewalCount,
-            it.LoanPeriodDays,
-            c.PatronID,
-            CONCAT(p.FirstName, " ", p.LastName) AS patronName,
-            ic.ItemCopyID,
-            COALESCE(i.Title, ic.Title) AS title
-         FROM CheckOut c
-         JOIN Item_Copy ic ON ic.ItemCopyID = c.ItemCopyID
-         LEFT JOIN ITEM i ON i.ItemID = ic.ItemID
-         LEFT JOIN Item_Type it ON it.ItemTypeID = i.ItemTypeID
-         LEFT JOIN Patron p ON p.PatronID = c.PatronID
-         WHERE c.ItemCopyID = ? AND c.ReturnDate IS NULL
-         ORDER BY c.CheckOutID DESC
-         LIMIT 1
+        'SELECT ic.ItemCopyID, ic.Status,
+                i.ItemType, i.ItemTypeID
+         FROM Item_Copy ic
+         JOIN ITEM i ON i.ItemID = ic.ItemID
+         WHERE ic.ItemCopyID = ?
          FOR UPDATE'
     );
-    $stmt->execute([$itemCopyID]);
-    $checkout = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt->execute([$copyID]);
+    $copy = $stmt->fetch();
 
-    if (!$checkout) {
-        $pdo->rollBack();
-        echo json_encode(['ok' => false, 'error' => 'No active checkout was found for this item copy.']);
-        exit;
+    if (!$copy || $copy['Status'] !== 'CheckedOut') {
+        throw new DomainException(
+            'Copy is not currently checked out.'
+        );
     }
 
-    if ((int)$checkout['renewalCount'] >= 2) {
-        $pdo->rollBack();
-        echo json_encode(['ok' => false, 'error' => 'This item has already reached the renewal limit.']);
-        exit;
+    $stmt = $pdo->prepare(
+        'SELECT c.CheckOutID, c.PatronID,
+                c.DueDate,
+                COALESCE(c.RenewalCount, 0) AS renewalCount,
+                CONCAT(p.FirstName, " ", p.LastName)
+                    AS patronName
+         FROM CheckOut c
+         JOIN Patron p ON p.PatronID = c.PatronID
+         WHERE c.ItemCopyID = ?
+           AND c.ReturnDate IS NULL
+         FOR UPDATE'
+    );
+    $stmt->execute([$copyID]);
+    $loans = $stmt->fetchAll();
+
+    if (count($loans) !== 1) {
+        throw new DomainException(
+            'Exactly one active checkout is required.'
+        );
     }
 
-    $dueDate = $checkout['DueDate'] ? new DateTime($checkout['DueDate']) : null;
-    if ($dueDate && $dueDate < new DateTime('today')) {
-        $pdo->rollBack();
-        echo json_encode(['ok' => false, 'error' => 'Overdue items cannot be renewed.']);
-        exit;
+    $loan = $loans[0];
+
+    $stmt = $pdo->prepare(
+        'SELECT COALESCE(
+            SUM(GREATEST(
+                COALESCE(Amount, 0) -
+                COALESCE(AmountPaid, 0), 0
+            )), 0)
+        FROM Fine
+        WHERE PatronID = ?'
+    );
+    $stmt->execute([(int)$loan['PatronID']]);
+
+    $outstandingFines = (float)$stmt->fetchColumn();
+
+    if ($outstandingFines > 0) {
+        throw new DomainException(
+            'Renewal denied: patron has outstanding fines.'
+        );
     }
 
-    $loanDays = (int)($checkout['LoanPeriodDays'] ?? 14);
-    $newDueDate = (new DateTime('today'))->modify('+' . $loanDays . ' days')->format('Y-m-d');
+
+    if ((int)$loan['renewalCount'] >= 2) {
+        throw new DomainException(
+            'Two-renewal limit reached.'
+        );
+    }
+
+    if (!$loan['DueDate']) {
+        throw new DomainException(
+            'Checkout has no due date.'
+        );
+    }
+
+    $today = new DateTimeImmutable('today');
+    $currentDue = new DateTimeImmutable(
+        substr($loan['DueDate'], 0, 10)
+    );
+
+    if ($currentDue < $today) {
+        throw new DomainException(
+            'Overdue items cannot be renewed.'
+        );
+    }
+
+    $stmt = $pdo->prepare(
+        "SELECT COUNT(*) FROM Reservation
+         WHERE ItemCopyID = ?
+           AND PatronID <> ?
+           AND Status IN ('Pending', 'Ready')"
+    );
+    $stmt->execute([$copyID, $loan['PatronID']]);
+
+    if ((int)$stmt->fetchColumn() > 0) {
+        throw new DomainException(
+            'Another patron has reserved this copy.'
+        );
+    }
+
+    $stmt = $pdo->prepare(
+        'SELECT LoanPeriodDays
+         FROM Item_Type
+         WHERE ItemTypeID = ?
+            OR LOWER(TRIM(TypeName)) =
+               LOWER(TRIM(?))
+         ORDER BY
+           CASE WHEN ItemTypeID = ? THEN 0 ELSE 1 END
+         LIMIT 1'
+    );
+    $stmt->execute([
+        $copy['ItemTypeID'],
+        $copy['ItemType'],
+        $copy['ItemTypeID']
+    ]);
+
+    $days = (int)$stmt->fetchColumn();
+
+    if ($days <= 0) {
+        throw new DomainException(
+            'No loan period configured for this item type.'
+        );
+    }
+
+    $newDue = $currentDue
+        ->modify('+' . $days . ' days')
+        ->format('Y-m-d');
 
     $stmt = $pdo->prepare(
         'UPDATE CheckOut
-           SET DueDate = ?, RenewalCount = COALESCE(RenewalCount, 0) + 1
-         WHERE CheckOutID = ?'
+         SET DueDate = ?,
+             RenewalCount = COALESCE(RenewalCount, 0) + 1
+         WHERE CheckOutID = ?
+           AND ReturnDate IS NULL'
     );
-    $stmt->execute([$newDueDate, $checkout['CheckOutID']]);
+    $stmt->execute([
+        $newDue,
+        $loan['CheckOutID']
+    ]);
+
+    if ($stmt->rowCount() !== 1) {
+        throw new RuntimeException(
+            'Could not update renewal.'
+        );
+    }
 
     $pdo->commit();
 
-    echo json_encode([
+    respond([
         'ok' => true,
-        'message' => 'Item renewed successfully.',
+        'message' => 'Renewal completed successfully.',
         'checkout' => [
-            'checkoutID' => (int)$checkout['CheckOutID'],
-            'itemCopyID' => (int)$itemCopyID,
-            'patronName' => $checkout['patronName'],
-            'dueDate' => $newDueDate,
-            'renewalCount' => (int)$checkout['renewalCount'] + 1,
-            'title' => $checkout['title'],
+            'checkoutID' => (int)$loan['CheckOutID'],
+            'itemCopyID' => $copyID,
+            'patronName' => $loan['patronName'],
+            'previousDueDate' => $loan['DueDate'],
+            'dueDate' => $newDue,
+            'renewalCount' =>
+                (int)$loan['renewalCount'] + 1,
+            'status' => 'CheckedOut'
         ]
     ]);
-} catch (PDOException $e) {
-    if ($pdo->inTransaction()) {
-        $pdo->rollBack();
-    }
 
-    error_log('renewal: ' . $e->getMessage());
-    http_response_code(500);
-    echo json_encode(['ok' => false, 'error' => 'Could not renew the checkout.']);
+} catch (DomainException $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    respond(['ok' => false, 'error' => $e->getMessage()], 409);
+
+} catch (Throwable $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    error_log('renewItem: ' . $e->getMessage());
+    respond([
+        'ok' => false,
+        'error' => 'Could not renew checkout.'
+    ], 500);
 }
-?>

@@ -199,6 +199,57 @@ The team must also determine how reserved items are identified, how reservations
 
 Implementation is subject to client validation and team capacity.
 
+## Additional Thought of User Stories During Development & Client Clarification
+
+## User Story-13 – Manage Item Statuses and Routing
+
+**Priority:** High
+
+**User Story:**
+
+As a librarian, I want to view, filter, and update the availability and routing statuses of individual or multiple library item copies so that I can efficiently process returned items, incoming shipments, maintenance inspections, reservation holds, and reshelving while keeping the library's inventory accurate.
+
+### Acceptance Criteria
+
+1. The librarian can access a dedicated Item Status Management page displaying item-copy information, including ItemCopyID, title, home branch, current branch, item status, routing status, and destination branch when applicable.
+2. The librarian can search for an individual item copy and filter items by branch, item status, routing status, and destination branch.
+3. The librarian can select one or multiple item copies and perform an appropriate status update without individually searching for each copy.
+4. The system distinguishes an item's availability status from its routing status so that an item may remain unavailable while awaiting transportation, in transit, or awaiting physical processing.
+5. When an item is checked in, the system assigns an appropriate unavailable status and determines whether the item requires transportation, reshelving, or reservation handling.
+6. Librarians can view items awaiting transportation and mark selected items as In Transit when they are dispatched.
+7. Librarians can view items arriving at a selected branch and mark individual items or a selected group as Arrived. The system updates their recorded current branch and retains an unavailable status until processing is completed.
+8. After arrival or check-in, the librarian can record that an item requires maintenance or error-bin review. Such items remain unavailable until the issue is resolved.
+9. For items that pass inspection, the system checks for active reservations before determining whether the item should be routed to a reservation shelf or normal reshelving.
+10. If an item has an active reservation, the system prevents normal reshelving and directs the item to the designated pickup branch or reservation shelf.
+11. The librarian can confirm that a reserved item has been physically placed on the reservation shelf. The system updates the reservation to Ready for Pickup and starts the five-calendar-day pickup period.
+12. Items without active reservations or unresolved maintenance issues can be placed in Awaiting Reshelving status.
+13. The librarian can mark one or multiple items Available after confirming that they have been physically placed on the appropriate library shelves.
+14. The system prevents invalid status transitions, including marking checked-out, in-transit, unresolved maintenance, or reservation-held items Available without completing the required steps.
+15. The system displays confirmation of successful updates and identifies items that could not be updated, including the reason.
+16. Changes made through the status management page are reflected in the item-copy records and relevant check-in, reservation, and routing workflows.
+
+### Client Clarifications
+
+- Librarians should be able to filter items by their current workflow state and branch.
+- Staff should be able to process incoming items from a truck together rather than searching for every copy individually.
+- Items returned during check-in may require inspection, maintenance, transportation, reservation handling, or reshelving.
+- Staff should be able to update statuses individually or in groups.
+- Items must not become available for checkout until they have been physically shelved.
+- Reservation holds must be respected when determining an item's next destination.
+- Detailed shipment tracking is not required for the MVP.
+
+### Sprint 2 Notes
+
+This story extends US-05 (Check-in), US-06 (Routing), US-07 (Error Bin), and US-12 (Reservations).
+
+The Item Status Management interface is intended to complete the physical workflows initiated during check-in, rather than replace the existing check-in interface.
+
+The implementation should use separate item availability and routing statuses, together with existing branch relationships. Additional data-model attributes may be required to track routing destination and transportation progress.
+
+The initial implementation should prioritize individual status updates, basic filtering, bulk arrival confirmation, and reshelving completion. More advanced shipment management and automated processing may be deferred depending on sprint capacity.
+
+All status changes must follow the agreed business rules and be validated against the relevant user stories and activity diagrams.
+
 ---
 
 ## Proposed Additional Scope – US-09: Process Overdue Fine

@@ -15,13 +15,7 @@
     <header class="site-header">
         <h1>Wayback Public Library</h1>
         <h4>Checkin</h4>
-        <nav class="library-nav" aria-label="Library tasks">
-            <a href="index.php">Checkout</a>
-            <a href="add-library-item.php">Add Library Item</a>
-            <a href="return-item.php" aria-current="page">Checkin</a>
-            <a href="renewal.php">Renew</a>
-            <a href="all-items.php">All Items</a>
-        </nav>
+        <?php require __DIR__ . '/includes/navigation.php'; ?>
     </header>
 
     <main class="page-container library-page">
@@ -50,7 +44,7 @@
                     <p><strong>Title:</strong> <span data-field="title">--</span></p>
                     <p><strong>Item Copy ID:</strong> <span data-field="itemCopyID">--</span></p>
                     <p><strong>Item Type:</strong> <span data-field="itemType">--</span></p>
-                    <p><strong>Current Branch:</strong> <span data-field="branchName">--</span></p>
+                    <p><strong>Home Branch:</strong> <span data-field="branchName">--</span></p>
                     <p><strong>Due Date:</strong> <span data-field="dueDate">--</span></p>
                     <p><strong>Status:</strong> <span data-field="status">--</span></p>
                     <p class="msg error" data-field="error" hidden></p>
@@ -66,6 +60,8 @@
                     <p><strong>Checkin Date:</strong> <span data-field="summaryCheckinDate">--</span></p>
                     <p><strong>Days Overdue:</strong> <span data-field="summaryDaysOverdue">--</span></p>
                     <p><strong>Fine Assessed:</strong> <span data-field="summaryFine">--</span></p>
+                    <p><strong>Returned To:</strong> <span data-field="summaryReturnBranch">--</span></p>
+                    <p><strong>Next Step:</strong> <span data-field="summaryRoutingInstruction">--</span></p>
                 </div>
 
                 <form id="checkinForm">
@@ -80,6 +76,24 @@
                         <button type="submit" id="checkinLibraryItem" class="primary-button">Record Return</button>
                     </div>
                 </form>
+                <div id="checkinConfirmation"
+                    class="operation-confirmation"
+                    hidden>
+                    <strong>Confirm Return</strong>
+                    <p id="checkinConfirmationText"></p>
+                    <button type="button" id="confirmCheckinBtn">
+                        Yes, Record Return
+                    </button>
+                    <button type="button" id="cancelCheckinBtn">
+                        Cancel
+                    </button>
+                </div>
+
+                <div id="checkinMessage"
+                    class="operation-message"
+                    role="status"
+                    aria-live="polite"
+                    hidden></div>
             </aside>
         </div>
     </main>

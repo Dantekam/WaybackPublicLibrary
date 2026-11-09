@@ -13,13 +13,7 @@
     <header class="site-header">
         <h1>Wayback Public Library</h1>
         <h4>Checkout a Library Item</h4>
-        <nav class="library-nav" aria-label="Library tasks">
-            <a href="index.php" aria-current="page">Checkout</a>
-            <a href="add-library-item.php">Add Library Item</a>
-            <a href="return-item.php">Checkin</a>
-            <a href="renewal.php">Renew</a>
-            <a href="all-items.php">All Items</a>
-        </nav>
+        <?php require __DIR__ . '/includes/navigation.php'; ?>
     </header>
 
     <main class="page-container">
@@ -237,15 +231,12 @@
         
         <!-- ===== Current Checkouts Table ===== -->
         <section class="current-checkouts">
-
             <div class="table-heading">
                 <h2>Current Checkouts</h2>
             </div>
 
             <div class="table-container">
-
                 <table>
-
                     <thead>
                         <tr>
                             <th>Checkout ID</th>
@@ -254,28 +245,22 @@
                             <th>Author</th>
                             <th>Item Copy ID</th>
                             <th>Item Type</th>
+                            <th>Home Branch</th>
                             <th>Checkout Date</th>
                             <th>Due Date</th>
-                            <th>Return BranchID</th>
-                            <th>Return Date</th>
-                            <th>Renewal Count</th>
+                            <th>Renewals</th>
                         </tr>
                     </thead>
 
                     <tbody id="checkoutsBody">
-
                         <tr class="empty-row">
-                            <td colspan="11">
-                                Current checkout records will appear here.
+                            <td colspan="10">
+                                Search for a patron to view current checkouts.
                             </td>
                         </tr>
-
                     </tbody>
-
                 </table>
-
             </div>
-
         </section>
 
     </main>
@@ -327,7 +312,7 @@
         </div>
     </div>
     <script src="js/addItem.js" defer></script>
-    <script src="js/checkout.js" defer></script>
+    <script src="js/checkout.js?v=20261109-2" defer></script>
 
 </body>
 
