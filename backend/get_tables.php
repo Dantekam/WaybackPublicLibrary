@@ -31,15 +31,23 @@ catch (PDOException $e) {
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Library Checkouts</title>
+    <link rel="stylesheet" href="../style/style.css">
 </head>
 
 <body>
 
-<h1>Library Checkouts</h1>
+<header class="site-header">
+    <h1>Library Checkouts</h1>
+</header>
 
+<main class="page-container">
+<section class="current-checkouts">
+<div class="table-container">
 <table>
     <tr>
         <th>Patron ID</th>
@@ -70,6 +78,9 @@ catch (PDOException $e) {
     <?php } ?>
 
 </table>
+</div>
+</section>
+</main>
 
 </body>
 </html>

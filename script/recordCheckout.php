@@ -1,39 +1,39 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
-
 require __DIR__ . '/db_connect.php';
 
-function respond($ok, $message, $status = 200) {
-    http_response_code($status);
-    echo json_encode([
-        'ok' => $ok,
-        'error' => $message
-    ]);
+function respond($data, $code = 200) {
+    http_response_code($code);
+    echo json_encode($data);
     exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    respond(false, 'POST request required.', 405);
+    respond(['ok' => false, 'error' => 'POST required.'], 405);
 }
 
-$patronID = $_POST['patronID'] ?? '';
-$itemCopyID = $_POST['itemCopyID'] ?? '';
+$patronRaw = $_POST['patronID'] ?? '';
+$copyRaw = $_POST['itemCopyID'] ?? '';
 
-if (!is_string($patronID) || !ctype_digit($patronID) ||
-    !is_string($itemCopyID) || !ctype_digit($itemCopyID) ||
-    (int)$patronID <= 0 || (int)$itemCopyID <= 0) {
-    respond(false, 'Please provide valid patron and item copy IDs.', 400);
+if (!is_string($patronRaw) || !ctype_digit($patronRaw) ||
+    (int)$patronRaw <= 0 ||
+    !is_string($copyRaw) || !ctype_digit($copyRaw) ||
+    (int)$copyRaw <= 0) {
+    respond([
+        'ok' => false,
+        'error' => 'Valid patron and item copy IDs are required.'
+    ], 400);
 }
 
-$patronID = (int)$patronID;
-$itemCopyID = (int)$itemCopyID;
+$patronID = (int)$patronRaw;
+$copyID = (int)$copyRaw;
 
 try {
     $pdo->beginTransaction();
 
-    // Lock the patron row to serialize checkouts for this patron.
     $stmt = $pdo->prepare(
-        'SELECT FirstName, LastName, MembershipExpiration
+        'SELECT PatronID, FirstName, LastName,
+                MembershipExpiration
          FROM Patron
          WHERE PatronID = ?
          FOR UPDATE'
@@ -42,124 +42,151 @@ try {
     $patron = $stmt->fetch();
 
     if (!$patron) {
-        $pdo->rollBack();
-        respond(false, 'Patron not found.');
+        throw new DomainException('Patron not found.');
     }
 
-    if (empty($patron['MembershipExpiration']) ||
-        $patron['MembershipExpiration'] < date('Y-m-d')) {
-        $pdo->rollBack();
-        respond(false, 'Patron membership has expired.');
+    if (!$patron['MembershipExpiration'] ||
+        substr($patron['MembershipExpiration'], 0, 10)
+            < date('Y-m-d')) {
+        throw new DomainException('Patron membership has expired.');
     }
 
-    // Check outstanding recorded fines.
     $stmt = $pdo->prepare(
-        'SELECT COALESCE(SUM(
-            GREATEST(Amount - AmountPaid, 0)
-        ), 0) AS OutstandingBalance
+        'SELECT COALESCE(
+            SUM(GREATEST(
+                COALESCE(Amount, 0) -
+                COALESCE(AmountPaid, 0), 0
+            )), 0)
          FROM Fine
          WHERE PatronID = ?'
     );
     $stmt->execute([$patronID]);
-    $balance = (float)$stmt->fetchColumn();
 
-    if ($balance > 0) {
-        $pdo->rollBack();
-        respond(false, 'Checkout denied: patron has outstanding fines.');
+    if ((float)$stmt->fetchColumn() > 0) {
+        throw new DomainException(
+            'Checkout denied: patron has outstanding fines.'
+        );
     }
 
-    // Count checkouts that have not been returned.
     $stmt = $pdo->prepare(
         'SELECT COUNT(*)
          FROM CheckOut
-         WHERE PatronID = ?
-           AND ReturnDate IS NULL'
+         WHERE PatronID = ? AND ReturnDate IS NULL'
     );
     $stmt->execute([$patronID]);
-    $activeCount = (int)$stmt->fetchColumn();
 
-    if ($activeCount >= 20) {
-        $pdo->rollBack();
-        respond(false, 'Checkout denied: patron has reached the 20-item limit.');
+    if ((int)$stmt->fetchColumn() >= 20) {
+        throw new DomainException(
+            'Checkout denied: patron has reached the 20-item limit.'
+        );
     }
 
-    // Lock the physical copy and read its catalog item type.
     $stmt = $pdo->prepare(
-        'SELECT c.Status, i.ItemType
-         FROM Item_Copy c
-         INNER JOIN ITEM i ON c.ItemID = i.ItemID
-         WHERE c.ItemCopyID = ?
+        'SELECT
+            ic.ItemCopyID,
+            ic.Status,
+            ic.RoutingStatus,
+            ic.CurrentBranchID,
+            i.ItemID,
+            i.Title,
+            i.ItemType,
+            i.ItemTypeID,
+            b.BranchName
+         FROM Item_Copy ic
+         JOIN ITEM i ON i.ItemID = ic.ItemID
+         LEFT JOIN Branch b
+           ON b.BranchID = ic.CurrentBranchID
+         WHERE ic.ItemCopyID = ?
          FOR UPDATE'
     );
-    $stmt->execute([$itemCopyID]);
+    $stmt->execute([$copyID]);
     $copy = $stmt->fetch();
 
     if (!$copy) {
-        $pdo->rollBack();
-        respond(false, 'Item copy not found.');
+        throw new DomainException('Item copy not found.');
     }
 
     if ($copy['Status'] !== 'Available') {
-        $pdo->rollBack();
-        respond(false, 'Item is not available for checkout.');
+        throw new DomainException(
+            'Item is not available. Reserved items must be ' .
+            'checked out through Reservation Management.'
+        );
     }
 
-    // Prevent a second active loan for the same physical copy.
+    if ($copy['RoutingStatus'] !== 'NotApplicable') {
+        throw new DomainException(
+            'Item has not completed its physical processing.'
+        );
+    }
+
     $stmt = $pdo->prepare(
         'SELECT COUNT(*)
          FROM CheckOut
          WHERE ItemCopyID = ?
            AND ReturnDate IS NULL'
     );
-    $stmt->execute([$itemCopyID]);
+    $stmt->execute([$copyID]);
 
     if ((int)$stmt->fetchColumn() > 0) {
-        $pdo->rollBack();
-        respond(
-            false,
-            'Checkout denied: this copy has an unresolved checkout record.'
+        throw new DomainException(
+            'This copy already has an active checkout.'
         );
     }
 
-    // Loan rules from the WPL narrative.
-    $type = strtolower(trim($copy['ItemType']));
+    $stmt = $pdo->prepare(
+        "SELECT COUNT(*)
+         FROM Reservation
+         WHERE ItemCopyID = ?
+           AND Status IN ('Pending', 'Ready')"
+    );
+    $stmt->execute([$copyID]);
 
-    switch ($type) {
-        case 'book':
-            $loanDays = 14;
-            break;
-
-        case 'movie':
-        case 'dvd':
-        case 'video':
-            $loanDays = 7;
-            break;
-
-        case 'periodical':
-            $loanDays = 1;
-            break;
-
-        default:
-            $pdo->rollBack();
-            respond(
-                false,
-                'Loan duration has not been configured for this item type.'
-            );
+    if ((int)$stmt->fetchColumn() > 0) {
+        throw new DomainException(
+            'This copy has an active reservation.'
+        );
     }
 
-    $checkoutDate = date('Y-m-d');
-    $dueDate = date('Y-m-d', strtotime("+$loanDays days"));
+    // Support older catalog records whose ItemTypeID is NULL.
+    // The type name must still match a configured Item_Type row.
+    $stmt = $pdo->prepare(
+        'SELECT LoanPeriodDays
+         FROM Item_Type
+         WHERE ItemTypeID = ?
+            OR LOWER(TRIM(TypeName)) =
+               LOWER(TRIM(?))
+         ORDER BY
+            CASE WHEN ItemTypeID = ? THEN 0 ELSE 1 END
+         LIMIT 1'
+    );
+    $stmt->execute([
+        $copy['ItemTypeID'],
+        $copy['ItemType'],
+        $copy['ItemTypeID']
+    ]);
+
+    $loanDays = (int)$stmt->fetchColumn();
+
+    if ($loanDays <= 0) {
+        throw new DomainException(
+            'No loan period is configured for this item type.'
+        );
+    }
+
+    $today = new DateTimeImmutable('today');
+    $checkoutDate = $today->format('Y-m-d');
+    $dueDate = $today
+        ->modify('+' . $loanDays . ' days')
+        ->format('Y-m-d');
 
     $stmt = $pdo->prepare(
         'INSERT INTO CheckOut
-            (CheckOutDate, DueDate, PatronID, ItemCopyID, ReturnDate)
-         VALUES (?, ?, ?, ?, NULL)'
+         (PatronID, ItemCopyID, CheckOutDate,
+          DueDate, ReturnDate, RenewalCount)
+         VALUES (?, ?, ?, ?, NULL, 0)'
     );
     $stmt->execute([
-        $checkoutDate,
-        $dueDate,
-        $patronID,
-        $itemCopyID
+        $patronID, $copyID, $checkoutDate, $dueDate
     ]);
 
     $checkoutID = (int)$pdo->lastInsertId();
@@ -170,36 +197,58 @@ try {
          WHERE ItemCopyID = ?
            AND Status = 'Available'"
     );
-    $stmt->execute([$itemCopyID]);
+    $stmt->execute([$copyID]);
 
     if ($stmt->rowCount() !== 1) {
-        throw new RuntimeException('Copy status update failed.');
+        throw new RuntimeException('Could not update copy status.');
     }
+
+    $stmt = $pdo->prepare(
+        'SELECT GROUP_CONCAT(
+            DISTINCT CONCAT(a.FirstName, " ", a.LastName)
+            ORDER BY a.LastName, a.FirstName
+            SEPARATOR ", "
+        )
+         FROM Item_Author ia
+         JOIN Author a ON a.AuthorID = ia.AuthorID
+         WHERE ia.ItemID = ?'
+    );
+    $stmt->execute([$copy['ItemID']]);
+    $author = $stmt->fetchColumn() ?: 'Unknown';
 
     $pdo->commit();
 
-    echo json_encode([
+    respond([
         'ok' => true,
+        'message' => 'Checkout recorded successfully.',
         'checkout' => [
             'checkoutID' => $checkoutID,
+            'patronID' => $patronID,
             'patron' => trim(
                 $patron['FirstName'] . ' ' . $patron['LastName']
             ),
-            'itemCopyID' => $itemCopyID,
+            'itemCopyID' => $copyID,
+            'title' => $copy['Title'],
+            'author' => $author,
             'itemType' => $copy['ItemType'],
+            'branchID' => $copy['CurrentBranchID'],
+            'branchName' => $copy['BranchName'],
             'checkoutDate' => $checkoutDate,
-            'dueDate' => $dueDate
+            'dueDate' => $dueDate,
+            'renewalCount' => 0,
+            'status' => 'CheckedOut'
         ]
     ]);
 
-} catch (Throwable $e) {
-    if ($pdo->inTransaction()) {
-        $pdo->rollBack();
-    }
+} catch (DomainException $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    respond(['ok' => false, 'error' => $e->getMessage()], 409);
 
-    http_response_code(500);
-    echo json_encode([
+} catch (Throwable $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    error_log('recordCheckout: ' . $e->getMessage());
+    respond([
         'ok' => false,
-        'error' => 'Could not record checkout. Please try again.'
-    ]);
+        'error' => 'Could not record checkout.'
+    ], 500);
 }
