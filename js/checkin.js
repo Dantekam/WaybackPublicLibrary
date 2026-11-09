@@ -1,25 +1,38 @@
 (() => {
   'use strict';
 
-  const lookupForm = document.getElementById('checkinLookupForm');
-  const resultBox = document.getElementById('checkinResult');
-  const checkinForm = document.getElementById('checkinForm');
-  const branchSelect = document.getElementById('returnBranchID');
+  const $ = id => document.getElementById(id);
 
-  if (!lookupForm || !resultBox || !checkinForm || !branchSelect) {
+  const lookupForm = $('checkinLookupForm');
+  const resultBox = $('checkinResult');
+  const checkinForm = $('checkinForm');
+  const branchSelect = $('returnBranchID');
+  const submitButton = $('checkinLibraryItem');
+
+  const confirmation = $('checkinConfirmation');
+  const confirmationText = $('checkinConfirmationText');
+  const confirmButton = $('confirmCheckinBtn');
+  const cancelButton = $('cancelCheckinBtn');
+  const messageBox = $('checkinMessage');
+
+  if (!lookupForm || !resultBox || !checkinForm ||
+      !branchSelect || !confirmation || !messageBox) {
     return;
   }
 
   const itemInput =
     checkinForm.querySelector('input[name="itemCopyID"]');
-  const submitButton =
-    document.getElementById('checkinLibraryItem');
+
+  let pendingReturn = null;
+  let busy = false;
 
   function setField(field, value) {
     const target =
       document.querySelector(`[data-field="${field}"]`);
 
-    if (target) target.textContent = value ?? '--';
+    if (target) {
+      target.textContent = value ?? '--';
+    }
   }
 
   function setError(message) {
@@ -32,27 +45,48 @@
     target.hidden = !message;
   }
 
+  function showMessage(text, error = false) {
+    messageBox.textContent = text;
+    messageBox.className =
+      'operation-message ' + (error ? 'error' : 'success');
+    messageBox.hidden = !text;
+  }
+
+  function hideConfirmation() {
+    pendingReturn = null;
+    confirmation.hidden = true;
+    confirmationText.textContent = '';
+  }
+
+  function setBusy(value) {
+    busy = value;
+
+    if (submitButton) submitButton.disabled = value;
+    if (confirmButton) confirmButton.disabled = value;
+    if (cancelButton) cancelButton.disabled = value;
+
+    branchSelect.disabled = value;
+  }
+
   async function fetchJSON(url, options = {}) {
     const response = await fetch(url, {
       cache: 'no-store',
       ...options
     });
 
-    const text = await response.text();
+    const raw = await response.text();
     let data;
 
     try {
-      data = JSON.parse(text);
+      data = JSON.parse(raw);
     } catch {
       throw new Error('Server returned invalid JSON.');
     }
 
-    if (!data || typeof data !== 'object') {
-      throw new Error('Unexpected server response.');
-    }
-
-    if (!response.ok || !data.ok) {
-      throw new Error(data.error || 'Request failed.');
+    if (!data || !response.ok || !data.ok) {
+      throw new Error(
+        data?.error || 'The request could not be completed.'
+      );
     }
 
     return data;
@@ -83,37 +117,44 @@
 
     itemInput.value = '';
     setError('');
+    showMessage('');
+    hideConfirmation();
   }
 
   async function loadBranches() {
     try {
-      const data =
-        await fetchJSON('script/catalogData.php');
+      const data = await fetchJSON(
+        'script/catalogData.php'
+      );
 
       branchSelect.replaceChildren(
         new Option('Select a branch', '')
       );
 
       for (const branch of data.branches || []) {
-        branchSelect.appendChild(
+        branchSelect.add(
           new Option(
             `${branch.BranchName} (#${branch.BranchID})`,
             String(branch.BranchID)
           )
         );
       }
+
     } catch (error) {
-      setError(error.message);
+      showMessage(error.message, true);
     }
   }
 
   lookupForm.addEventListener('submit', async event => {
     event.preventDefault();
-    resetDetails();
+
+    if (busy) return;
 
     const copyID =
       lookupForm.elements.namedItem('itemCopyID')
         ?.value?.trim() || '';
+
+    resetDetails();
 
     if (!copyID) {
       setError('Please enter an Item Copy ID.');
@@ -136,6 +177,7 @@
       setField('title', item.title);
       setField('itemCopyID', item.itemCopyID);
       setField('itemType', item.itemType);
+
       setField(
         'branchName',
         item.homeBranchName ||
@@ -143,18 +185,22 @@
           ? `Branch #${item.homeBranchID}`
           : 'Not assigned')
       );
+
       setField('status', item.status);
+
       setField(
         'patronName',
         item.activeCheckout?.patronName ||
         'No active checkout'
       );
+
       setField(
         'dueDate',
         item.activeCheckout?.dueDate || '--'
       );
 
       setField('summaryCopyID', item.itemCopyID);
+
       setField(
         'summaryDueDate',
         item.activeCheckout?.dueDate || '--'
@@ -170,8 +216,6 @@
 
       itemInput.value = String(item.itemCopyID);
 
-      // Home branch is the default, but staff can
-      // select the branch where the item was returned.
       if (item.homeBranchID) {
         branchSelect.value =
           String(item.homeBranchID);
@@ -182,9 +226,14 @@
     }
   });
 
-  checkinForm.addEventListener('submit', async event => {
+  checkinForm.addEventListener('submit', event => {
     event.preventDefault();
+
+    if (busy) return;
+
     setError('');
+    showMessage('');
+    hideConfirmation();
 
     if (!itemInput.value) {
       setError('Find an active checkout first.');
@@ -196,74 +245,133 @@
       return;
     }
 
-    const selectedBranch =
-      branchSelect.selectedOptions[0]?.textContent ||
-      branchSelect.value;
+    const copyID = itemInput.value;
+    const branchID = branchSelect.value;
 
-    if (!confirm(
-      `Confirm return of copy #${itemInput.value} ` +
-      `at ${selectedBranch}?`
-    )) {
+    const branchName =
+      branchSelect.selectedOptions[0]?.textContent ||
+      branchID;
+
+    pendingReturn = {
+      copyID,
+      branchID,
+      branchName
+    };
+
+    confirmationText.textContent =
+      `Return copy #${copyID} at ${branchName}? ` +
+      'Confirm only after receiving the physical item.';
+
+    confirmation.hidden = false;
+    confirmation.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest'
+    });
+  });
+
+  cancelButton.addEventListener('click', () => {
+    if (!busy) {
+      hideConfirmation();
+    }
+  });
+
+  confirmButton.addEventListener('click', async () => {
+    if (busy || !pendingReturn) return;
+
+    const request = { ...pendingReturn };
+
+    // A user may change the selected copy or branch
+    // after opening the confirmation.
+    if (itemInput.value !== request.copyID ||
+        branchSelect.value !== request.branchID) {
+      hideConfirmation();
+      showMessage(
+        'The return details changed. Please confirm again.',
+        true
+      );
       return;
     }
 
-    if (submitButton) submitButton.disabled = true;
+    const formData = new FormData();
+    formData.append('itemCopyID', request.copyID);
+    formData.append('returnBranchID', request.branchID);
+
+    setBusy(true);
 
     try {
       const data = await fetchJSON(
         'script/returnItem.php',
         {
           method: 'POST',
-          body: new FormData(checkinForm)
+          body: formData
         }
       );
 
       const checkout = data.checkout || {};
 
-      setField('status', checkout.status || 'Processing');
+      setField(
+        'status',
+        checkout.status || 'Processing'
+      );
+
       setField(
         'summaryCheckinDate',
         checkout.returnDate || '--'
       );
+
       setField(
         'summaryDaysOverdue',
         checkout.daysOverdue ?? 0
       );
+
       setField(
         'summaryFine',
-        checkout.fineAssessed === null ||
-        checkout.fineAssessed === undefined
+        checkout.fineAssessed == null
           ? 'Not assessed'
           : String(checkout.fineAssessed)
       );
-      setField(
-        'summaryReturnBranch',
-        checkout.returnBranchName || selectedBranch
-      );
-      setField(
-        'summaryRoutingInstruction',
+
+      const returnedTo =
+        checkout.returnBranchName ||
+        request.branchName;
+
+      const nextStep =
         checkout.routingInstruction ||
-        'Check item status management.'
-      );
+        'Check Item Status Management.';
 
-      // The return succeeded; prevent accidental
-      // duplicate check-in attempts.
+      setField('summaryReturnBranch', returnedTo);
+      setField('summaryRoutingInstruction', nextStep);
+
+      // Prevent a second submission for the same loan.
       itemInput.value = '';
+      hideConfirmation();
 
-      alert(
-        'Return recorded successfully.\n\n' +
-        'Returned to: ' +
-        (checkout.returnBranchName || selectedBranch) +
-        '\n\nNext step: ' +
-        (checkout.routingInstruction ||
-         'Check item status management.')
+      showMessage(
+        `Return recorded successfully. ` +
+        `Copy #${request.copyID} was returned to ` +
+        `${returnedTo}. Next step: ${nextStep}`
       );
 
     } catch (error) {
-      setError(error.message);
+      hideConfirmation();
+
+      showMessage(
+        error.message ||
+        'Could not confirm the return. Verify its status.',
+        true
+      );
+
     } finally {
-      if (submitButton) submitButton.disabled = false;
+      setBusy(false);
     }
+  });
+
+  branchSelect.addEventListener('change', () => {
+    if (!busy) hideConfirmation();
+  });
+
+  lookupForm.addEventListener('input', () => {
+    if (!busy) hideConfirmation();
   });
 
   resetDetails();

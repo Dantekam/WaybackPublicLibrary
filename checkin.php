@@ -68,6 +68,24 @@
                         <button type="submit" id="checkinLibraryItem" class="primary-button">Record Return</button>
                     </div>
                 </form>
+                <div id="checkinConfirmation"
+                    class="operation-confirmation"
+                    hidden>
+                    <strong>Confirm Return</strong>
+                    <p id="checkinConfirmationText"></p>
+                    <button type="button" id="confirmCheckinBtn">
+                        Yes, Record Return
+                    </button>
+                    <button type="button" id="cancelCheckinBtn">
+                        Cancel
+                    </button>
+                </div>
+
+                <div id="checkinMessage"
+                    class="operation-message"
+                    role="status"
+                    aria-live="polite"
+                    hidden></div>
             </aside>
         </div>
     </main>
