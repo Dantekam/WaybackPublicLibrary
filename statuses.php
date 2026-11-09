@@ -33,13 +33,7 @@
 </header>
 
 <main class="status-wrap">
-    <nav class="library-nav" aria-label="Library tasks">
-        <a href="index.php">Checkout</a>
-        <a href="add-library-item.php">Add Library Item</a>
-        <a href="checkin.php">Check-in</a>
-        <a href="renewal.php">Renewals</a>
-        <a href="statuses.php" aria-current="page">Statuses</a>
-    </nav>
+    <?php require __DIR__ . '/includes/navigation.php'; ?>
 
     <section class="status-panel">
         <h2>Inventory Search</h2>
