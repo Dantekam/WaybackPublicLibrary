@@ -1,129 +1,162 @@
-<?php
-header('Content-Type: application/json');
 
-// Db Connection
+<?php
+header('Content-Type: application/json; charset=utf-8');
 require __DIR__ . '/db_connect.php';
 
-$patronID = $_POST['patronID'] ?? '';
-$itemCopyID = $_POST['itemCopyID'] ?? '';
-
-if (!ctype_digit((string)$patronID) || !ctype_digit((string)$itemCopyID)) {
-    http_response_code(400);
-    echo json_encode(['ok' => false, 'error' => 'Missing or invalid patron/item.']);
+function respond($data, $code = 200) {
+    http_response_code($code);
+    echo json_encode($data);
     exit;
 }
 
-$patronID = (int)$patronID;
-$itemCopyID = (int)$itemCopyID;
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    respond(['ok' => false, 'error' => 'POST required.'], 405);
+}
+
+$patronRaw = $_POST['patronID'] ?? '';
+$copyRaw = $_POST['itemCopyID'] ?? '';
+
+if (!is_string($patronRaw) || !ctype_digit($patronRaw) ||
+    (int)$patronRaw <= 0 ||
+    !is_string($copyRaw) || !ctype_digit($copyRaw) ||
+    (int)$copyRaw <= 0) {
+    respond([
+        'ok' => false,
+        'error' => 'Valid patron and item copy IDs are required.'
+    ], 400);
+}
+
+$patronID = (int)$patronRaw;
+$copyID = (int)$copyRaw;
 
 try {
     $pdo->beginTransaction();
 
-    // 1. Confirm item copy exists and grab its current status
+    // Lock the physical copy to serialize reservation requests.
     $stmt = $pdo->prepare(
         'SELECT ItemCopyID, Status
-           FROM Item_Copy
-          WHERE ItemCopyID = ?
-          FOR UPDATE'
+         FROM Item_Copy
+         WHERE ItemCopyID = ?
+         FOR UPDATE'
     );
-    $stmt->execute([$itemCopyID]);
-    $copy = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt->execute([$copyID]);
+    $copy = $stmt->fetch();
 
     if (!$copy) {
-        $pdo->rollBack();
-        echo json_encode(['ok' => false, 'error' => 'Item copy not found.']);
-        exit;
+        throw new DomainException('Item copy not found.');
     }
 
-    // 2. Confirm patron exists
+    if (in_array($copy['Status'], ['Retired', 'Maintenance'], true)) {
+        throw new DomainException(
+            'This item copy cannot currently be reserved.'
+        );
+    }
+
     $stmt = $pdo->prepare(
-        'SELECT PatronID
-           FROM Patron
-          WHERE PatronID = ?'
+        'SELECT PatronID, MembershipExpiration
+         FROM Patron
+         WHERE PatronID = ?'
     );
     $stmt->execute([$patronID]);
-    $patron = $stmt->fetch(PDO::FETCH_ASSOC);
+    $patron = $stmt->fetch();
 
     if (!$patron) {
-        $pdo->rollBack();
-        echo json_encode(['ok' => false, 'error' => 'Patron not found.']);
-        exit;
+        throw new DomainException('Patron not found.');
     }
 
-    // 3. Check for an existing active reservation for this item copy
+    if (!$patron['MembershipExpiration'] ||
+        $patron['MembershipExpiration'] < date('Y-m-d')) {
+        throw new DomainException(
+            'Patron membership has expired.'
+        );
+    }
+
     $stmt = $pdo->prepare(
         "SELECT ReservationID
-           FROM Reservation
-          WHERE ItemCopyID = ?
-            AND Status IN ('Pending', 'Ready')
-          LIMIT 1"
+         FROM Reservation
+         WHERE ItemCopyID = ?
+           AND Status IN ('Pending', 'Ready')
+         LIMIT 1"
     );
-    $stmt->execute([$itemCopyID]);
-    $existingReservation = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt->execute([$copyID]);
 
-    if ($existingReservation) {
-        $pdo->rollBack();
-        echo json_encode(['ok' => false, 'error' => 'This item copy already has an active reservation.']);
-        exit;
+    if ($stmt->fetch()) {
+        throw new DomainException(
+            'This item copy already has an active reservation.'
+        );
     }
 
-    // 4. Determine whether the item is available for pickup now
-    $isAvailable = in_array(strtolower($copy['Status']), ['Available', 'Open'], true);
+    $available = $copy['Status'] === 'Available';
 
-    if ($isAvailable) {
-        $reservationStatus = 'Ready';
-        $readyForPickup = date('Y-m-d H:i:s');
-        $expiration = date('Y-m-d H:i:s', strtotime('+5 days'));
-    } else {
-        // Item is currently unavailable; the pickup period starts when it becomes ready
-        $reservationStatus = 'Pending';
-        $readyForPickup = null;
-        $expiration = null;
-    }
+    $status = $available ? 'Ready' : 'Pending';
+    $readyDate = $available ? date('Y-m-d H:i:s') : null;
+    $expiration = $available
+        ? date('Y-m-d H:i:s', strtotime('+5 days'))
+        : null;
 
-    // 5. Create the reservation
     $stmt = $pdo->prepare(
         'INSERT INTO Reservation
-            (PatronID, ItemCopyID, ReservationDateTime, ReadyForPickupDateTime, ExpirationDateTime, Status)
+         (PatronID, ItemCopyID, ReservationDateTime,
+          ReadyForPickupDateTime, ExpirationDateTime, Status)
          VALUES (?, ?, NOW(), ?, ?, ?)'
     );
     $stmt->execute([
         $patronID,
-        $itemCopyID,
-        $readyForPickup,
+        $copyID,
+        $readyDate,
         $expiration,
-        $reservationStatus
+        $status
     ]);
-    $reservationID = $pdo->lastInsertId();
 
-    // 6. Mark the item copy as reserved if it is available for pickup
-    if ($isAvailable) {
+    $reservationID = (int)$pdo->lastInsertId();
+
+    if ($available) {
         $stmt = $pdo->prepare(
             "UPDATE Item_Copy
-                SET Status = 'Reserved'
-              WHERE ItemCopyID = ?"
+             SET Status = 'Reserved'
+             WHERE ItemCopyID = ?
+               AND Status = 'Available'"
         );
-        $stmt->execute([$itemCopyID]);
+        $stmt->execute([$copyID]);
+
+        if ($stmt->rowCount() !== 1) {
+            throw new RuntimeException('Reservation status update failed.');
+        }
     }
 
     $pdo->commit();
 
-    echo json_encode([
+    respond([
         'ok' => true,
-        'message' => $isAvailable
+        'message' => $available
             ? 'Item reserved and ready for pickup.'
-            : 'Reservation created. The five-day pickup period will begin when the item is ready.',
+            : 'Reservation created. Pickup begins when the item is ready.',
         'reservation' => [
             'reservationID' => $reservationID,
             'patronID' => $patronID,
-            'itemCopyID' => $itemCopyID,
-            'status' => $reservationStatus,
+            'itemCopyID' => $copyID,
+            'status' => $status,
+            'readyForPickupDateTime' => $readyDate,
             'expirationDateTime' => $expiration
         ]
     ]);
 
-} catch (PDOException $e) {
+} catch (DomainException $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
+
+    respond(['ok' => false, 'error' => $e->getMessage()], 409);
+
+} catch (Throwable $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+
+    error_log('reserveItem: ' . $e->getMessage());
+
+    respond([
+        'ok' => false,
+        'error' => 'Could not create the reservation.'
+    ], 500);
 }
