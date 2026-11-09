@@ -77,10 +77,10 @@ if ((isset($_POST["submit"])) && $_POST["submit"] == 'submit') {
                 $numRows = $stmt2->rowCount();
 
                 if ($numRows != 1) {
-                    echo "<h2>Unable to process your request. Please try again later.</h2>";
+                    echo "<h2 class='msg error'>Unable to process your request. Please try again later.</h2>";
                 }
                 else {
-                    echo "<h2>Checkout successfully added!</h2>";
+                    echo "<h2 class='msg success'>Checkout successfully added!</h2>";
                 }
             }
         }
@@ -90,20 +90,20 @@ if ((isset($_POST["submit"])) && $_POST["submit"] == 'submit') {
     }
 }
 ?>
-<form action="./checkout.php" method="post">
+<form action="./checkout.php" method="post" class="library-panel">
     <?php
     if (!empty($missing)) {
-        echo "<h3 class='warning'>Please correct item(s) indicated:</h3>";
+        echo "<h3 class='msg error'>Please correct item(s) indicated:</h3>";
     }
     ?>
     <?php
     if (isset($missing) && in_array("patronID", $missing)) {
-        echo "<p class='warning'>Patron ID is required.</p>";
+        echo "<p class='msg error'>Patron ID is required.</p>";
     }
     ?>
     <?php
     if (isset($errors['patron'])) {
-        echo "<p class='warning'>{$errors['patron']}</p>";
+        echo "<p class='msg error'>{$errors['patron']}</p>";
     }
     ?>
     <p>
@@ -120,12 +120,12 @@ if ((isset($_POST["submit"])) && $_POST["submit"] == 'submit') {
     </p>
     <?php
     if (isset($missing) && in_array("itemCopyID", $missing)) {
-        echo "<p class='warning'>Item Copy ID is required.</p>";
+        echo "<p class='msg error'>Item Copy ID is required.</p>";
     }
     ?>
     <?php
     if (isset($errors['item'])) {
-        echo "<p class='warning'>{$errors['item']}</p>";
+        echo "<p class='msg error'>{$errors['item']}</p>";
     }
     ?>
     <p>
@@ -142,7 +142,7 @@ if ((isset($_POST["submit"])) && $_POST["submit"] == 'submit') {
     </p>
     <?php
     if (isset($missing) && in_array("checkoutDate", $missing)) {
-        echo "<p class='warning'>Checkout date is required.</p>";
+        echo "<p class='msg error'>Checkout date is required.</p>";
     }
     ?>
     <p>
@@ -159,7 +159,7 @@ if ((isset($_POST["submit"])) && $_POST["submit"] == 'submit') {
     </p>
     <?php
     if (isset($missing) && in_array("dueDate", $missing)) {
-        echo "<p class='warning'>Due date is required.</p>";
+        echo "<p class='msg error'>Due date is required.</p>";
     }
     ?>
     <p>
@@ -175,6 +175,6 @@ if ((isset($_POST["submit"])) && $_POST["submit"] == 'submit') {
         </label>
     </p>
 
-    <input type="submit" id="submit" name="submit" value="submit">
+    <input type="submit" id="submit" name="submit" value="submit" class="primary-button">
 
 </form>

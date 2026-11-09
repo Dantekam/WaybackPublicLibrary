@@ -3,6 +3,12 @@ header('Content-Type: application/json; charset=utf-8');
 
 require __DIR__ . '/db_connect.php';
 
+if ($dbError) {
+    http_response_code(500);
+    echo json_encode(['ok' => false, 'error' => 'Database unavailable.']);
+    exit;
+}
+
 $patronID = $_GET['patronID'] ?? '';
 
 if (!is_string($patronID) ||

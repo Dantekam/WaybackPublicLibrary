@@ -48,10 +48,10 @@
   const confirmationCard = $('#confirmationCard');
   const doneButton = $('#doneButton');
 
-  // Supports the existing HTML without modifying index.php.
-  const checkoutsBody =
-    $('#checkoutsBody') ||
-    $('.current-checkouts tbody');
+  const checkoutsBody = $('#checkoutsBody');
+  const checkoutColumnCount =
+    checkoutsBody?.closest('table')
+      ?.querySelectorAll('thead th').length ?? 0;
 
   if (!patronForm || !patronResult ||
       !itemForm || !itemResult ||
@@ -75,7 +75,7 @@
 
   function clearPatronDisplay() {
     for (const field of [
-      'name', 'expiration', 'activeCheckouts',
+      'name', 'expiration', 'email', 'phone_number', 'activeCheckouts',
       'outstandingFines', 'eligibility'
     ]) {
       setField(patronResult, field, '--');
@@ -84,7 +84,8 @@
 
   function clearItemDisplay() {
     for (const field of [
-      'itemCopyID', 'itemType', 'status'
+      'title', 'author',
+      'itemCopyID', 'itemType', 'status', 'branch'
     ]) {
       setField(itemResult, field, '--');
     }
@@ -111,6 +112,24 @@
       checkoutSummary,
       'itemType',
       state.item ? state.item.itemType : '--'
+    );
+
+    setField(
+      checkoutSummary, 
+      'title',
+      state.item ? state.item.title : '--'
+    );
+
+    setField(
+      checkoutSummary, 
+      'author',
+      state.item ? state.item.author : '--'
+    );
+
+    setField(
+      checkoutSummary, 
+      'branch',
+      state.item ? (state.item.branchName || state.item.branchID) : '--'
     );
 
     const patronInput =
@@ -158,7 +177,7 @@
     row.className = 'empty-row';
 
     const cell = document.createElement('td');
-    cell.colSpan = 6;
+    cell.colSpan = checkoutColumnCount;
     cell.textContent = message;
 
     row.appendChild(cell);
@@ -173,10 +192,15 @@
     const values = [
       checkout.checkoutID,
       checkout.patron,
+      checkout.title,
+      checkout.author,
       checkout.itemCopyID,
       checkout.itemType,
       checkout.checkoutDate,
-      checkout.dueDate
+      checkout.dueDate,
+      checkout.returnBranchID,
+      checkout.returnDate,
+      checkout.renewalCount
     ];
 
     for (const value of values) {
@@ -426,6 +450,19 @@
         itemResult, 'status', data.item.status
       );
 
+      setField(
+        itemResult, 'title',  data.item.title
+      );
+
+      setField(
+        itemResult, 'author', data.item.author
+      );
+
+      setField(
+        itemResult, 'branch',
+        data.item.branchName || data.item.branchID
+      );
+
       updateSummary();
 
       if (!data.item.available) {
@@ -471,6 +508,16 @@
     );
     setField(
       confirmationCard, 'dueDate', checkout.dueDate
+    );
+    setField(
+      confirmationCard, 'title',  checkout.title
+    );
+    setField(
+      confirmationCard, 'author', checkout.author
+    );
+    setField(
+      confirmationCard, 'branch',
+      checkout.branchName || checkout.branchID
     );
 
     confirmationCard.hidden = false;
