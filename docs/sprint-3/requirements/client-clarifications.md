@@ -132,3 +132,6 @@ Smaller number of fully functional.
 
 Are there any budget, privacy, technical, or operational constraints we should consider before committing to these features? 
 It’s only library privacy not a big concern since library internal. Really only have library staff using the system. Assuming everyone using the system has access to everything in the system
+
+Should we make user stories for the fixes? 
+Only if they need it, for a couple such as the renewing a patron membership and evaluating and paying a fine those may need models to go along with the process and a full user story with acceptance criteria.
