@@ -7,6 +7,16 @@
  *
  * Requires PHP's cURL extension and the same database connection used by
  * renewItem.php. Configure the test fixtures in .env before running.
+ * 
+ * CLEANUP INSTRUCTIONS:
+ * Execute the sql query below
+ * UPDATE CheckOut
+ * SET
+ *     DueDate = '2026-11-25',
+ *    RenewalCount = 0
+ * WHERE ItemCopyID = 10048
+ *  AND ReturnDate IS NULL;
+ * 
  */
 require_once __DIR__ . '/../loadEnv.php';
 loadEnv(__DIR__ . '/../.env');
