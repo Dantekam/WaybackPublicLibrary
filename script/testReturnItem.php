@@ -278,7 +278,7 @@ if (validId($otherBranchCopyId) && validId($otherBranchId) &&
 $pdo = null;
 
 try {
-    require __DIR__ . '/../db_connect.php';
+    require __DIR__ . '/db_connect.php';
 
     if (!isset($pdo) || !($pdo instanceof PDO)) {
         throw new RuntimeException(

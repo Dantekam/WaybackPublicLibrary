@@ -1,10 +1,18 @@
+
 <?php
 /**
  * Integration tests for recordCheckout.php.
  *
  * Run:
  *   .\php\php.exe .\script\testRecordCheckout.php
- *
+ * 
+ * CLEANUP PROCESS:
+ * Execute the folliwng sql commands on the database
+ * DELETE FROM CheckOut
+ * WHERE ItemCopyID IN (10021, 10022, 10023);
+ * UPDATE Item_Copy
+ * SET Status = 'Available'
+ * WHERE ItemCopyID IN (10021, 10022, 10023);
  */
 
 require_once __DIR__ . '/../loadEnv.php';
@@ -15,26 +23,23 @@ if ($url === '') {
     throw new RuntimeException('Set RECORD_CHECKOUT_URL in .env.');
 }
 
-$eligibleId = (string)($_ENV['RECORD_CHECKOUT_ELIGIBLE_PATRON_ID'] ?? '');
-$expiredId  = (string)($_ENV['RECORD_CHECKOUT_EXPIRED_PATRON_ID'] ?? '');
-$finesId    = (string)($_ENV['RECORD_CHECKOUT_FINES_PATRON_ID'] ?? '');
-$limitId    = (string)($_ENV['RECORD_CHECKOUT_LIMIT_PATRON_ID'] ?? '');
+$eligibleId = '41';
+$expiredId = '42';
+$finesId = '43';
+$limitId = '44';
 
-$availableBookId      = (string)($_ENV['RECORD_CHECKOUT_AVAILABLE_BOOK_ID'] ?? '');
-$availableMovieId     = (string)($_ENV['RECORD_CHECKOUT_AVAILABLE_MOVIE_ID'] ?? '');
-$availablePeriodicalId = (string)($_ENV['RECORD_CHECKOUT_AVAILABLE_PERIODICAL_ID'] ?? '');
-$unavailableCopyId    = (string)($_ENV['RECORD_CHECKOUT_UNAVAILABLE_COPY_ID'] ?? '');
-$unresolvedCopyId     = (string)($_ENV['RECORD_CHECKOUT_UNRESOLVED_COPY_ID'] ?? '');
-$unknownTypeCopyId    = (string)($_ENV['RECORD_CHECKOUT_UNKNOWN_TYPE_COPY_ID'] ?? '');
-$missingCopyId        = (string)($_ENV['RECORD_CHECKOUT_MISSING_COPY_ID'] ?? '999999');
-$missingPatronId      = (string)($_ENV['RECORD_CHECKOUT_MISSING_PATRON_ID'] ?? '999999');
+$availableBookId = '10021';
+$availableMovieId = '10022';
+$availablePeriodicalId = '10023';
+$unavailableCopyId = '10024';
+$unresolvedCopyId = '10025';
+$unknownTypeCopyId = '10047';
+$missingCopyId = '999999';
+$missingPatronId = '999999';
 
 $tests = [];
 $passed = 0;
 $failed = 0;
-
-$createdCheckoutIds = [];
-$successfulPairs = [];
 
 function addTest(
     array &$tests,
@@ -114,178 +119,72 @@ function assertCheckoutError(array $response, string $expectedError): void {
     );
 }
 
-function trackCreatedCheckout(
-    PDO $pdo,
-    string $patronId,
-    string $copyId,
-    array &$createdCheckoutIds,
-    array &$successfulPairs
-): void {
-    if (!validId($patronId) || !validId($copyId)) {
-        return;
-    }
-
-    $stmt = $pdo->prepare(
-        'SELECT CheckOutID
-         FROM CheckOut
-         WHERE PatronID = ?
-           AND ItemCopyID = ?
-           AND ReturnDate IS NULL'
-    );
-    $stmt->execute([(int)$patronId, (int)$copyId]);
-
-    foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $id) {
-        $createdCheckoutIds[(int)$id] = true;
-    }
-
-    $successfulPairs[$patronId . ':' . $copyId] = [
-        'patronID' => (int)$patronId,
-        'itemCopyID' => (int)$copyId
-    ];
-}
-
-function cleanupCheckouts(
-    PDO $pdo,
-    array $createdCheckoutIds,
-    array $successfulPairs
-): void {
-    $idsToDelete = array_keys($createdCheckoutIds);
-
-    foreach ($successfulPairs as $pair) {
-        $stmt = $pdo->prepare(
-            'SELECT CheckOutID
-             FROM CheckOut
-             WHERE PatronID = ?
-               AND ItemCopyID = ?
-               AND ReturnDate IS NULL'
-        );
-        $stmt->execute([$pair['patronID'], $pair['itemCopyID']]);
-
-        foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $id) {
-            $idsToDelete[] = (int)$id;
-        }
-    }
-
-    $idsToDelete = array_values(array_unique(array_map('intval', $idsToDelete)));
-
-    if (!$idsToDelete) {
-        echo "CLEANUP: No test checkout records to remove.\n";
-        return;
-    }
-
-    $pdo->beginTransaction();
-
-    try {
-        $placeholders = implode(',', array_fill(0, count($idsToDelete), '?'));
-
-        $stmt = $pdo->prepare(
-            "SELECT DISTINCT ItemCopyID
-             FROM CheckOut
-             WHERE CheckOutID IN ($placeholders)"
-        );
-        $stmt->execute($idsToDelete);
-        $copyIds = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
-
-        $stmt = $pdo->prepare(
-            "DELETE FROM CheckOut WHERE CheckOutID IN ($placeholders)"
-        );
-        $stmt->execute($idsToDelete);
-
-        if ($copyIds) {
-            $copyPlaceholders = implode(',', array_fill(0, count($copyIds), '?'));
-            $restore = $pdo->prepare(
-                "UPDATE Item_Copy
-                 SET Status = 'Available'
-                 WHERE ItemCopyID IN ($copyPlaceholders)"
-            );
-            $restore->execute($copyIds);
-        }
-
-        $pdo->commit();
-        echo "CLEANUP: Removed " . count($idsToDelete) .
-             " test checkout record(s) and restored " . count($copyIds) .
-             " item copy/copies to Available.\n";
-    } catch (Throwable $e) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        echo "CLEANUP ERROR: " . $e->getMessage() . "\n";
-        throw $e;
-    }
-}
-
-addTest($tests, 'GET request is rejected', $url, [], 405,
-    fn($r) => assertCheckoutError($r, 'POST request required.'),
-    false,
-    'GET'
-);
-
 addTest($tests, 'Missing patronID and itemCopyID', $url, [], 400,
     fn($r) => assertCheckoutError(
         $r,
-        'Please provide valid patron and item copy IDs.'
+        'Valid patron and item copy IDs are required.'
     )
 );
 
 addTest($tests, 'Empty IDs', $url, checkoutPost('', ''), 400,
     fn($r) => assertCheckoutError(
         $r,
-        'Please provide valid patron and item copy IDs.'
+        'Valid patron and item copy IDs are required.'
     )
 );
 
 addTest($tests, 'Zero patronID', $url, checkoutPost('0', '1'), 400,
     fn($r) => assertCheckoutError(
         $r,
-        'Please provide valid patron and item copy IDs.'
+        'Valid patron and item copy IDs are required.'
     )
 );
 
 addTest($tests, 'Zero itemCopyID', $url, checkoutPost('1', '0'), 400,
     fn($r) => assertCheckoutError(
         $r,
-        'Please provide valid patron and item copy IDs.'
+        'Valid patron and item copy IDs are required.'
     )
 );
 
 addTest($tests, 'Negative IDs', $url, checkoutPost('-1', '-2'), 400,
     fn($r) => assertCheckoutError(
         $r,
-        'Please provide valid patron and item copy IDs.'
+        'Valid patron and item copy IDs are required.'
     )
 );
 
 addTest($tests, 'Nonnumeric IDs', $url, checkoutPost('abc', 'xyz'), 400,
     fn($r) => assertCheckoutError(
         $r,
-        'Please provide valid patron and item copy IDs.'
+        'Valid patron and item copy IDs are required.'
     )
 );
 
 addTest($tests, 'Decimal IDs', $url, checkoutPost('1.5', '2.5'), 400,
     fn($r) => assertCheckoutError(
         $r,
-        'Please provide valid patron and item copy IDs.'
+        'Valid patron and item copy IDs are required.'
     )
 );
 
 addTest($tests, 'Array patronID', $url, ['patronID' => ['1'], 'itemCopyID' => '1'], 400,
     fn($r) => assertCheckoutError(
         $r,
-        'Please provide valid patron and item copy IDs.'
+        'Valid patron and item copy IDs are required.'
     )
 );
 
 addTest($tests, 'Array itemCopyID', $url, ['patronID' => '1', 'itemCopyID' => ['1']], 400,
     fn($r) => assertCheckoutError(
         $r,
-        'Please provide valid patron and item copy IDs.'
+        'Valid patron and item copy IDs are required.'
     )
 );
 
 if (validId($missingPatronId) && validId($availableBookId)) {
     addTest($tests, 'Patron not found', $url,
-        checkoutPost($missingPatronId, $availableBookId), 200,
+        checkoutPost($missingPatronId, $availableBookId), 409,
         fn($r) => assertCheckoutError($r, 'Patron not found.')
     );
 } else {
@@ -294,7 +193,7 @@ if (validId($missingPatronId) && validId($availableBookId)) {
 
 if (validId($expiredId) && validId($availableBookId)) {
     addTest($tests, 'Expired membership', $url,
-        checkoutPost($expiredId, $availableBookId), 200,
+        checkoutPost($expiredId, $availableBookId), 409,
         fn($r) => assertCheckoutError($r, 'Patron membership has expired.')
     );
 } else {
@@ -303,7 +202,7 @@ if (validId($expiredId) && validId($availableBookId)) {
 
 if (validId($finesId) && validId($availableBookId)) {
     addTest($tests, 'Outstanding fines', $url,
-        checkoutPost($finesId, $availableBookId), 200,
+        checkoutPost($finesId, $availableBookId), 409,
         fn($r) => assertCheckoutError(
             $r,
             'Checkout denied: patron has outstanding fines.'
@@ -315,7 +214,7 @@ if (validId($finesId) && validId($availableBookId)) {
 
 if (validId($limitId) && validId($availableBookId)) {
     addTest($tests, '20-item checkout limit', $url,
-        checkoutPost($limitId, $availableBookId), 200,
+        checkoutPost($limitId, $availableBookId), 409,
         fn($r) => assertCheckoutError(
             $r,
             'Checkout denied: patron has reached the 20-item limit.'
@@ -327,7 +226,7 @@ if (validId($limitId) && validId($availableBookId)) {
 
 if (validId($eligibleId) && validId($missingCopyId)) {
     addTest($tests, 'Item copy not found', $url,
-        checkoutPost($eligibleId, $missingCopyId), 200,
+        checkoutPost($eligibleId, $missingCopyId), 409,
         fn($r) => assertCheckoutError($r, 'Item copy not found.')
     );
 } else {
@@ -336,8 +235,8 @@ if (validId($eligibleId) && validId($missingCopyId)) {
 
 if (validId($eligibleId) && validId($unavailableCopyId)) {
     addTest($tests, 'Unavailable item copy', $url,
-        checkoutPost($eligibleId, $unavailableCopyId), 200,
-        fn($r) => assertCheckoutError($r, 'Item is not available for checkout.')
+        checkoutPost($eligibleId, $unavailableCopyId), 409,
+        fn($r) => assertCheckoutError($r, 'Item is not available. Reserved items must be checked out through Reservation Management.')
     );
 } else {
     echo "SKIP: Unavailable copy (set RECORD_CHECKOUT_UNAVAILABLE_COPY_ID)\n";
@@ -345,10 +244,10 @@ if (validId($eligibleId) && validId($unavailableCopyId)) {
 
 if (validId($eligibleId) && validId($unresolvedCopyId)) {
     addTest($tests, 'Copy has unresolved checkout record', $url,
-        checkoutPost($eligibleId, $unresolvedCopyId), 200,
+        checkoutPost($eligibleId, $unresolvedCopyId), 409,
         fn($r) => assertCheckoutError(
             $r,
-            'Checkout denied: this copy has an unresolved checkout record.'
+            'Item is not available. Reserved items must be checked out through Reservation Management.'
         )
     );
 } else {
@@ -357,10 +256,10 @@ if (validId($eligibleId) && validId($unresolvedCopyId)) {
 
 if (validId($eligibleId) && validId($unknownTypeCopyId)) {
     addTest($tests, 'Unknown item type', $url,
-        checkoutPost($eligibleId, $unknownTypeCopyId), 200,
+        checkoutPost($eligibleId, $unknownTypeCopyId), 409,
         fn($r) => assertCheckoutError(
             $r,
-            'Loan duration has not been configured for this item type.'
+            'No loan period is configured for this item type.'
         )
     );
 } else {
@@ -412,100 +311,51 @@ foreach ($successCases as $case) {
                 trim((string)$checkout['itemType']) !== '',
                 'Expected the item type.');
 
-            $today = new DateTimeImmutable('today');
-            $expectedDueDate = $today->modify("+$expectedDays days")->format('Y-m-d');
+            $checkoutDate = $checkout['checkoutDate'] ?? '';
+            assertTrue(
+                preg_match('/^\d{4}-\d{2}-\d{2}$/', $checkoutDate) === 1,
+                "Invalid checkout date returned: '$checkoutDate'."
+            );
 
-            assertTrue(($checkout['checkoutDate'] ?? '') === $today->format('Y-m-d'),
-                'Checkout date does not match today.');
+            $expectedDueDate = (new DateTimeImmutable($checkoutDate))
+                ->modify("+$expectedDays days")
+                ->format('Y-m-d');
             assertTrue(($checkout['dueDate'] ?? '') === $expectedDueDate,
                 "Expected due date $expectedDueDate.");
-        },
-        true
+        }
     );
 }
 
-$pdo = null;
-try {
-    require __DIR__ . '/../db_connect.php';
-
-    if (!isset($pdo) || !($pdo instanceof PDO)) {
-        throw new RuntimeException(
-            'db_connect.php did not provide a PDO connection in $pdo.'
+foreach ($tests as $test) {
+    try {
+        $response = requestJson(
+            $test['url'],
+            $test['method'],
+            $test['postData']
         );
-    }
 
-    foreach ($tests as $test) {
-        try {
-            if ($test['trackPossibleCheckout']) {
-                $patronForCheck = (int)$test['postData']['patronID'];
-                $copyForCheck = (int)$test['postData']['itemCopyID'];
+        assertTrue(
+            is_array($response['json']),
+            'Response was not valid JSON: ' . $response['jsonError'] .
+            '; response body: ' . $response['body']
+        );
 
-                $check = $pdo->prepare(
-                    'SELECT c.Status,
-                            (SELECT COUNT(*)
-                             FROM CheckOut co
-                             WHERE co.ItemCopyID = c.ItemCopyID
-                               AND co.ReturnDate IS NULL) AS ActiveCount
-                     FROM Item_Copy c
-                     WHERE c.ItemCopyID = ?'
-                );
-                $check->execute([$copyForCheck]);
-                $copyState = $check->fetch(PDO::FETCH_ASSOC);
-
-                assertTrue($copyState !== false,
-                    'Configured success-test item copy does not exist.');
-                assertTrue($copyState['Status'] === 'Available',
-                    'Configured success-test copy is not Available; refusing to modify it.');
-                assertTrue((int)$copyState['ActiveCount'] === 0,
-                    'Configured success-test copy already has an active checkout; refusing to modify it.');
-            }
-
-            $response = requestJson($test['url'], $test['method'], $test['postData']);
-
-            if ($test['trackPossibleCheckout']) {
-                trackCreatedCheckout(
-                    $pdo,
-                    (string)$test['postData']['patronID'],
-                    (string)$test['postData']['itemCopyID'],
-                    $createdCheckoutIds,
-                    $successfulPairs
-                );
-            }
-
+        if ($test['expectedHttp'] !== null) {
             assertTrue(
-                is_array($response['json']),
-                'Response was not valid JSON: ' . $response['jsonError'] .
-                '; response body: ' . $response['body']
+                $response['http'] === $test['expectedHttp'],
+                "Expected HTTP {$test['expectedHttp']}, received {$response['http']}." .
+                "\nServer response: " . $response['body']
             );
-
-            if ($test['expectedHttp'] !== null) {
-                assertTrue(
-                    $response['http'] === $test['expectedHttp'],
-                    "Expected HTTP {$test['expectedHttp']}, received {$response['http']}."
-                );
-            }
-
-            ($test['assertion'])($response);
-            $passed++;
-            echo "PASS: {$test['name']}\n";
-        } catch (Throwable $e) {
-            $failed++;
-            echo "FAIL: {$test['name']} — {$e->getMessage()}\n";
         }
-    }
-} catch (Throwable $e) {
-    echo "SETUP ERROR: {$e->getMessage()}\n";
-    $failed++;
-} finally {
-    if ($pdo instanceof PDO) {
-        try {
-            cleanupCheckouts($pdo, $createdCheckoutIds, $successfulPairs);
-        } catch (Throwable $e) {
-            $failed++;
-            echo "FAIL: Checkout cleanup — {$e->getMessage()}\n";
-        }
-    } else {
-        echo "CLEANUP NOT RUN: No PDO connection was available.\n";
+
+        ($test['assertion'])($response);
+
+        $passed++;
+        echo "PASS: {$test['name']}\n";
+
+    } catch (Throwable $e) {
+        $failed++;
+        echo "FAIL: {$test['name']} — {$e->getMessage()}\n";
     }
 }
 

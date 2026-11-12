@@ -4,9 +4,8 @@
  *
  * Run:
  *   .\php\php.exe .\script\testFindItem.php
- * Note: Test values above just examples and not actual values
+ * 
  */
-// make sure to change values
 require_once __DIR__ . '/../loadEnv.php';
 
 loadEnv(__DIR__ . '/../.env');
