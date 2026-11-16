@@ -3,6 +3,7 @@
 $currentPage = basename($_SERVER['SCRIPT_NAME'] ?? '');
 
 $navigation = [
+    'dashboard.php' => 'Dashboard',
     'index.php' => 'Checkout',
     'add-library-item.php' => 'Add Library Item',
     'checkin.php' => 'Check-in',

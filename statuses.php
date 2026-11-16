@@ -115,10 +115,10 @@
 <header class="site-header">
     <h1>Wayback Public Library</h1>
     <h4>Item Status Management</h4>
+    <?php require __DIR__ . '/includes/navigation.php'; ?>
 </header>
 
 <main class="status-wrap">
-    <?php require __DIR__ . '/includes/navigation.php'; ?>
 
     <section class="status-panel">
         <h2>Inventory Search</h2>
