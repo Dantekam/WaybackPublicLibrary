@@ -35,11 +35,16 @@ $activeCheckoutCopyID = '10021';
 $noActiveCheckoutCopyID = '10024';
 $missingCopyID = '999999';
 $notCheckedOutCopyID = '20000';
+$reservedCopyID = '10049';
 
 $eligibleId = '41';
 $expiredId = '42';
-$finesId = '43';
-$limitId = '44';
+$finesCopyID = '10051';
+$renewalLimitCopyID = '10050';
+$noDueDateCopyID = '10052';
+$noLoanPeriodCopyID = '10053';
+$overdueCopyID = '10054';
+$multipleActiveCheckoutsCopyID = '10055';
 
 $availableBookId = '10021';
 $availableMovieId = '10022';

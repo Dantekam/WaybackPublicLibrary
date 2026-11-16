@@ -12,7 +12,6 @@
 require_once __DIR__ . '/../loadEnv.php';
 loadEnv(__DIR__ . '/../.env');
 
-// Reuse RECORD_CHECKOUT_URL to derive reserveItem.php when possible.
 $url = $_ENV['RESERVE_ITEM_URL'] ??
     (isset($_ENV['RECORD_CHECKOUT_URL'])
         ? str_replace('recordCheckout.php', 'reserveItem.php', $_ENV['RECORD_CHECKOUT_URL'])
