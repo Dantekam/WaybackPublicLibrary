@@ -116,10 +116,10 @@ As a librarian, I want to assess overdue fines, review patron balances, and reco
 ### Business Rules
 
 | Item Type | Loan Duration | Daily Overdue Fine |
-|---|---|---|
-| Book | 14 days | $0.25 |
-| Movie | 7 days | $1.00 |
-| Periodical | 1 day | $0.50 |
+|-----------|---------------|--------------------|
+|   Book    |    14 days    |       $0.25        |
+|   Movie   |    7 days     |       $1.00        |
+|   Period. |    1 day      |       $0.50        |
 
 - Overdue fines accumulate according to the number of overdue days.
 - Patrons with outstanding fines cannot complete additional checkouts.
@@ -188,15 +188,14 @@ As a library administrator, I want to view library activity, circulation trends,
 2. The dashboard displays current patron and catalog or inventory totals, clearly distinguishing the measures shown.
 3. The dashboard displays assessed and outstanding fine amounts.
 4. The dashboard displays available collection acquisition-cost information.
-5. The system supports viewing operational trends by week.
-6. The dashboard supports selecting a date range.
-7. Where supported by existing data, the dashboard allows filtering by library branch and item type.
-8. The dashboard includes a report identifying currently overdue items, their associated patrons, and due dates.
-9. The dashboard includes a report identifying books and movies due within the next three days.
-10. Staff can review overdue items and relevant outstanding fine amounts.
-11. Dashboard figures are calculated from WPL's recorded data.
-12. The dashboard handles empty results and missing information without displaying misleading totals.
-13. The dashboard clearly distinguishes assessed fines from payments received and outstanding balances.
+5. The dashboard supports selecting a date range.
+6. Where supported by existing data, the dashboard allows filtering by library branch and item type.
+7. The dashboard includes a report identifying currently overdue items, their associated patrons, and due dates.
+8. The dashboard includes a report identifying books and movies due within the next three days.
+9. Staff can review overdue items and relevant outstanding fine amounts.
+10. Dashboard figures are calculated from WPL's recorded data.
+11. The dashboard handles empty results and missing information without displaying misleading totals.
+12. The dashboard clearly distinguishes assessed fines from payments received and outstanding balances.
 
 ### Business Rules
 
