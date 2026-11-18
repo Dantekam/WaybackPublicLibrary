@@ -262,6 +262,49 @@ As a librarian, I want to reserve a library community room on behalf of an eligi
 
 ---
 
+## US-20 – View and Manage Patron Library Card
+
+**Priority:** High
+
+### User Story
+
+As a librarian, I want to view and manage a patron's library account through a centralized library card interface so that I can efficiently review their membership, active checkouts, reservations, and outstanding fines without navigating between multiple pages.
+
+### Acceptance Criteria
+
+1. The librarian can locate a patron using their patron ID or the existing patron search functionality.
+2. The system displays the patron's name, patron ID, home branch, email, and membership expiration date.
+3. The system clearly identifies whether the patron's membership is active or expired.
+4. The system displays the number of currently checked-out items relative to the 20-item borrowing limit.
+5. The librarian can view the patron's active checkouts, including item titles, due dates, and renewal counts.
+6. The librarian can access the existing checkout renewal functionality for eligible items.
+7. The system displays the patron's outstanding fine balance and individual fine records.
+8. The librarian can record fine payments through the existing fine-management functionality, and the displayed balance updates accordingly.
+9. The librarian can view the patron's active item reservations and their current statuses.
+10. The librarian can initiate membership renewal through the existing membership renewal functionality.
+11. Following a successful membership renewal, the updated expiration date and membership status are displayed.
+12. The system displays accurate patron information retrieved from the existing database records.
+13. The interface clearly separates membership, checkouts, fines, and reservations into organized sections.
+14. Invalid patron identifiers or unavailable records produce appropriate error messages.
+
+### Business Rules
+
+- Each patron has one library membership record.
+- Library memberships are valid for two years and renew from the current date.
+- Patrons may have no more than 20 active checkouts.
+- Outstanding fines and expired memberships restrict checkout eligibility.
+- Item renewal limits and due dates remain governed by existing circulation rules.
+- Patron balances are calculated from assessed fines and recorded payments.
+- The library card interface must not create duplicate patron, checkout, reservation, or fine records.
+
+### Supporting Models
+
+- Patron Library Card wireframe.
+- Patron account management activity diagram.
+- Existing Patron, CheckOut, Reservation, Fine, FinePayment, Branch, and Item_Copy entities.
+
+---
+
 # 3. Database and Model Considerations
 
 Sprint 3 will build on the existing WPL relational data model.
