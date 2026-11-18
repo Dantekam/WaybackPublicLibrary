@@ -119,7 +119,7 @@ As a librarian, I want to assess overdue fines, review patron balances, and reco
 |-----------|---------------|--------------------|
 |   Book    |    14 days    |       $0.25        |
 |   Movie   |    7 days     |       $1.00        |
-|   Period. |    1 day      |       $0.50        |
+|   Periodical |    1 day      |       $0.50        |
 
 - Overdue fines accumulate according to the number of overdue days.
 - Patrons with outstanding fines cannot complete additional checkouts.
