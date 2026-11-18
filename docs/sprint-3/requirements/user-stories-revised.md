@@ -21,6 +21,7 @@ Complete essential patron membership and fine-management functionality, introduc
 - US-14 – Search Library Items and Patrons
 - US-15 – View Administrative Dashboard and Reports
 - US-16 – Reserve Community Room
+- US-20 - View and Manage Patron Library Card
 
 ### Existing Functionality Requiring Stabilization
 
