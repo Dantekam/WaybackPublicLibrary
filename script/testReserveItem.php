@@ -1,3 +1,4 @@
+
 <?php
 /**
  * Integration tests for reserveItem.php.
@@ -6,58 +7,47 @@
  *   .\php\php.exe .\script\testReserveItem.php
  *
  * Requires PHP's cURL extension and the same database connection used by
- * reserveItem.php. Configure the test fixtures in .env before running.
+ * reserveItem.php.
  */
 
 require_once __DIR__ . '/../loadEnv.php';
 loadEnv(__DIR__ . '/../.env');
 
-$url = $_ENV['RESERVE_ITEM_URL'] ??
-    (isset($_ENV['RECORD_CHECKOUT_URL'])
-        ? str_replace('recordCheckout.php', 'reserveItem.php', $_ENV['RECORD_CHECKOUT_URL'])
-        : '');
+$url = $_ENV['RESERVE_ITEM_URL'] ?? getenv('RESERVE_ITEM_URL');
 
-if ($url === '') {
-    throw new RuntimeException(
-        'Set RESERVE_ITEM_URL or RECORD_CHECKOUT_URL in .env.'
-    );
+if (!$url) {
+    die("SETUP ERROR: RENEW_ITEM_URL is not configured in .env.\n");
 }
 
-$eligiblePatronId = (string)($_ENV['RESERVE_ITEM_ELIGIBLE_PATRON_ID'] ??
-    $_ENV['RECORD_CHECKOUT_ELIGIBLE_PATRON_ID'] ??
-    $_ENV['FIND_PATRON_ELIGIBLE_ID'] ?? '');
-$expiredPatronId = (string)($_ENV['RECORD_CHECKOUT_EXPIRED_PATRON_ID'] ??
-    $_ENV['FIND_PATRON_EXPIRED_ID'] ?? '');
-$missingPatronId = (string)($_ENV['RECORD_CHECKOUT_MISSING_PATRON_ID'] ??
-    $_ENV['FIND_PATRON_MISSING_ID'] ?? '999999');
-$missingCopyId = (string)($_ENV['FIND_ITEM_MISSING_ID'] ?? '999999');
+if (!extension_loaded('curl')) {
+    die("SETUP ERROR: PHP cURL extension is not enabled.\n");
+}
 
-$availableCopyId = (string)($_ENV['RESERVE_ITEM_AVAILABLE_COPY_ID'] ?? '');
-$pendingCopyId = (string)($_ENV['RESERVE_ITEM_PENDING_COPY_ID'] ?? '');
-$retiredCopyId = (string)($_ENV['RESERVE_ITEM_RETIRED_COPY_ID'] ?? '');
-$maintenanceCopyId = (string)($_ENV['RESERVE_ITEM_MAINTENANCE_COPY_ID'] ?? '');
-$activeReservationCopyId = (string)($_ENV['RESERVE_ITEM_ACTIVE_RESERVATION_COPY_ID'] ?? '');
-$missingMembershipPatronId = (string)($_ENV['RESERVE_ITEM_NO_MEMBERSHIP_DATE_PATRON_ID'] ?? '');
+$eligiblePatronId = '41';
+$expiredPatronId = '42';
+$missingPatronId = '999999';
+$missingMembershipPatronId = '43';
+
+$availableCopyId = '10021';
+$pendingCopyId = '10024';
+$retiredCopyId = '10025';
+$maintenanceCopyId = '10026';
+$activeReservationCopyId = '10049';
+$missingCopyId = '999999';
 
 $tests = [];
 $passed = 0;
 $failed = 0;
+
 $itemCopySnapshots = [];
 $createdReservationIds = [];
 
-function addTest(
-    array &$tests,
-    string $name,
-    string $url,
-    string $method,
-    array $postData,
-    int $expectedHttp,
-    callable $assertion,
-    ?string $snapshotCopyId = null
-): void {
+function addTest($name, $method, $postData, $expectedHttp, $assertion, $snapshotCopyId = null)
+{
+    global $tests;
+
     $tests[] = [
         'name' => $name,
-        'url' => $url,
         'method' => $method,
         'postData' => $postData,
         'expectedHttp' => $expectedHttp,
@@ -66,18 +56,28 @@ function addTest(
     ];
 }
 
-function requestJson(string $url, string $method, array $postData): array {
+function assertTrue($condition, $message)
+{
+    if (!$condition) {
+        throw new Exception($message);
+    }
+}
+
+function requestJson($url, $method, $postData = [])
+{
     $ch = curl_init($url);
 
     $options = [
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 20,
-        CURLOPT_HTTPHEADER => ['Accept: application/json']
+        CURLOPT_TIMEOUT => 30,
+        CURLOPT_HTTPHEADER => [
+            'Accept: application/json'
+        ]
     ];
 
     if ($method === 'POST') {
         $options[CURLOPT_POST] = true;
-        $options[CURLOPT_POSTFIELDS] = http_build_query($postData);
+        $options[CURLOPT_POSTFIELDS] = $postData;
     } else {
         $options[CURLOPT_CUSTOMREQUEST] = $method;
     }
@@ -85,389 +85,421 @@ function requestJson(string $url, string $method, array $postData): array {
     curl_setopt_array($ch, $options);
 
     $body = curl_exec($ch);
-    $curlError = curl_error($ch);
-    $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
     if ($body === false) {
-        throw new RuntimeException("HTTP request failed: $curlError");
+        $error = curl_error($ch);
+        throw new Exception("cURL request failed: $error");
     }
+
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+    $decoded = json_decode($body, true);
 
     return [
         'http' => $httpCode,
         'body' => $body,
-        'json' => json_decode($body, true),
+        'json' => $decoded,
         'jsonError' => json_last_error_msg()
     ];
 }
 
-function assertTrue(bool $condition, string $message): void {
-    if (!$condition) {
-        throw new RuntimeException($message);
-    }
+function errorAssertion($expectedError)
+{
+    return function ($response) use ($expectedError) {
+        $json = $response['json'];
+
+        assertTrue(
+            is_array($json),
+            "Response was not valid JSON: " .
+            $response['jsonError'] .
+            "; response body: " . $response['body']
+        );
+
+        assertTrue(
+            ($json['ok'] ?? null) === false,
+            'Expected ok=false.'
+        );
+
+        assertTrue(
+            ($json['error'] ?? '') === $expectedError,
+            "Expected error '$expectedError', received: " .
+            ($json['error'] ?? '(missing error)')
+        );
+    };
 }
 
-function validId(string $id): bool {
-    return $id !== '' && ctype_digit($id) && (int)$id > 0;
-}
-
-function reservePost(string $patronId, string $copyId): array {
+function reservePost($patronID, $copyID)
+{
     return [
-        'patronID' => $patronId,
-        'itemCopyID' => $copyId
+        'patronID' => $patronID,
+        'itemCopyID' => $copyID
     ];
 }
 
-function assertReserveError(array $response, string $expectedError): void {
-    assertTrue(($response['json']['ok'] ?? null) === false, 'Expected ok=false.');
-    assertTrue(
-        ($response['json']['error'] ?? '') === $expectedError,
-        "Expected error '$expectedError'; received '" .
-        ($response['json']['error'] ?? '') . "'."
-    );
-}
-
-function snapshotItemCopy(PDO $pdo, string $copyId, array &$itemCopySnapshots): bool {
-    if (!validId($copyId)) {
-        return false;
-    }
-
-    $stmt = $pdo->prepare(
-        'SELECT ItemCopyID, Status
-         FROM Item_Copy
-         WHERE ItemCopyID = ?
-         FOR UPDATE'
-    );
-    $stmt->execute([(int)$copyId]);
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$row) {
-        return false;
-    }
-
-    $itemCopySnapshots[(int)$row['ItemCopyID']] = $row['Status'];
-    return true;
-}
-
-function cleanupReservations(
-    PDO $pdo,
-    array $createdReservationIds,
-    array $itemCopySnapshots
-): void {
-    if (!$createdReservationIds && !$itemCopySnapshots) {
-        echo "CLEANUP: No reservation records needed cleanup.\n";
-        return;
-    }
-
-    $pdo->beginTransaction();
-
-    try {
-        if ($createdReservationIds) {
-            $placeholders = implode(',', array_fill(0, count($createdReservationIds), '?'));
-            $stmt = $pdo->prepare(
-                "DELETE FROM Reservation
-                 WHERE ReservationID IN ($placeholders)"
-            );
-            $stmt->execute(array_values($createdReservationIds));
-        }
-
-        if ($itemCopySnapshots) {
-            $stmt = $pdo->prepare(
-                'UPDATE Item_Copy
-                 SET Status = ?
-                 WHERE ItemCopyID = ?'
-            );
-
-            foreach ($itemCopySnapshots as $copyId => $status) {
-                $stmt->execute([$status, $copyId]);
-            }
-        }
-
-        $pdo->commit();
-
-        echo "CLEANUP: Deleted " . count($createdReservationIds) .
-             " test reservation(s) and restored " .
-             count($itemCopySnapshots) . " item-copy status(es).\n";
-    } catch (Throwable $e) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        echo "CLEANUP ERROR: " . $e->getMessage() . "\n";
-        throw $e;
-    }
+function validID($id)
+{
+    return is_string($id) &&
+        $id !== '' &&
+        ctype_digit($id) &&
+        (int)$id > 0;
 }
 
 function successReservationAssertion(
-    array $response,
-    string $patronId,
-    string $copyId,
-    string $expectedStatus
-): void {
-    $reservation = $response['json']['reservation'] ?? [];
+    $response,
+    $patronID,
+    $copyID,
+    $expectedStatus
+) {
+    $json = $response['json'];
 
-    assertTrue(($response['json']['ok'] ?? null) === true, 'Expected ok=true.');
     assertTrue(
-        (string)($reservation['reservationID'] ?? '') !== '' &&
-        (int)$reservation['reservationID'] > 0,
-        'Expected a valid reservationID.'
+        is_array($json),
+        "Response was not valid JSON: " . $response['body']
     );
+
     assertTrue(
-        (string)($reservation['patronID'] ?? '') === $patronId,
+        ($json['ok'] ?? null) === true,
+        "Expected ok=true. Server response: " . $response['body']
+    );
+
+    $reservation = $json['reservation'] ?? null;
+
+    assertTrue(
+        is_array($reservation),
+        'Missing reservation object.'
+    );
+
+    assertTrue(
+        isset($reservation['reservationID']) &&
+        (int)$reservation['reservationID'] > 0,
+        'Missing or invalid reservationID.'
+    );
+
+    assertTrue(
+        (string)($reservation['patronID'] ?? '') === $patronID,
         'Returned patronID does not match the requested patron.'
     );
+
     assertTrue(
-        (string)($reservation['itemCopyID'] ?? '') === $copyId,
+        (string)($reservation['itemCopyID'] ?? '') === $copyID,
         'Returned itemCopyID does not match the requested copy.'
     );
+
     assertTrue(
-        ($reservation['status'] ?? null) === $expectedStatus,
+        ($reservation['status'] ?? '') === $expectedStatus,
         "Expected reservation status '$expectedStatus'."
     );
 
     if ($expectedStatus === 'Ready') {
         assertTrue(
-            ($response['json']['message'] ?? '') === 'Item reserved and ready for pickup.',
-            'Expected the ready-for-pickup success message.'
+            ($json['message'] ?? '') ===
+            'Item reserved and ready for pickup.',
+            'Unexpected ready-reservation success message.'
         );
+
         assertTrue(
             !empty($reservation['readyForPickupDateTime']),
-            'Expected readyForPickupDateTime for a Ready reservation.'
+            'Missing readyForPickupDateTime.'
         );
+
         assertTrue(
             !empty($reservation['expirationDateTime']),
-            'Expected expirationDateTime for a Ready reservation.'
+            'Missing expirationDateTime.'
         );
+
         assertTrue(
             strtotime($reservation['expirationDateTime']) >
             strtotime($reservation['readyForPickupDateTime']),
-            'Expected expirationDateTime to be later than readyForPickupDateTime.'
+            'Expiration date must be later than pickup date.'
         );
+
     } else {
         assertTrue(
-            ($response['json']['message'] ?? '') ===
-                'Reservation created. Pickup begins when the item is ready.',
-            'Expected the pending-reservation success message.'
+            ($json['message'] ?? '') ===
+            'Reservation created. Pickup begins when the item is ready.',
+            'Unexpected pending-reservation success message.'
         );
+
         assertTrue(
             ($reservation['readyForPickupDateTime'] ?? null) === null,
-            'Expected readyForPickupDateTime to be null for a Pending reservation.'
+            'Expected readyForPickupDateTime to be null.'
         );
+
         assertTrue(
             ($reservation['expirationDateTime'] ?? null) === null,
-            'Expected expirationDateTime to be null for a Pending reservation.'
+            'Expected expirationDateTime to be null.'
         );
     }
 }
 
-addTest($tests, 'GET request is rejected', $url, 'GET', [], 405,
-    fn($r) => assertReserveError($r, 'POST required.')
+addTest(
+    'GET request is rejected',
+    'GET',
+    [],
+    405,
+    errorAssertion('POST required.')
 );
 
-addTest($tests, 'Missing patronID and itemCopyID', $url, 'POST', [], 400,
-    fn($r) => assertReserveError($r, 'Valid patron and item copy IDs are required.')
+addTest(
+    'Missing patronID and itemCopyID',
+    'POST',
+    [],
+    400,
+    errorAssertion('Valid patron and item copy IDs are required.')
 );
 
-addTest($tests, 'Empty patronID', $url, 'POST', reservePost('', '1'), 400,
-    fn($r) => assertReserveError($r, 'Valid patron and item copy IDs are required.')
+addTest(
+    'Empty patronID',
+    'POST',
+    reservePost('', '1'),
+    400,
+    errorAssertion('Valid patron and item copy IDs are required.')
 );
 
-addTest($tests, 'Empty itemCopyID', $url, 'POST', reservePost('1', ''), 400,
-    fn($r) => assertReserveError($r, 'Valid patron and item copy IDs are required.')
+addTest(
+    'Empty itemCopyID',
+    'POST',
+    reservePost('1', ''),
+    400,
+    errorAssertion('Valid patron and item copy IDs are required.')
 );
 
-addTest($tests, 'Zero patronID', $url, 'POST', reservePost('0', '1'), 400,
-    fn($r) => assertReserveError($r, 'Valid patron and item copy IDs are required.')
+addTest(
+    'Zero patronID',
+    'POST',
+    reservePost('0', '1'),
+    400,
+    errorAssertion('Valid patron and item copy IDs are required.')
 );
 
-addTest($tests, 'Zero itemCopyID', $url, 'POST', reservePost('1', '0'), 400,
-    fn($r) => assertReserveError($r, 'Valid patron and item copy IDs are required.')
+addTest(
+    'Zero itemCopyID',
+    'POST',
+    reservePost('1', '0'),
+    400,
+    errorAssertion('Valid patron and item copy IDs are required.')
 );
 
-addTest($tests, 'Negative IDs', $url, 'POST', reservePost('-1', '-2'), 400,
-    fn($r) => assertReserveError($r, 'Valid patron and item copy IDs are required.')
+addTest(
+    'Negative IDs',
+    'POST',
+    reservePost('-1', '-2'),
+    400,
+    errorAssertion('Valid patron and item copy IDs are required.')
 );
 
-addTest($tests, 'Nonnumeric IDs', $url, 'POST', reservePost('abc', 'xyz'), 400,
-    fn($r) => assertReserveError($r, 'Valid patron and item copy IDs are required.')
+addTest(
+    'Nonnumeric IDs',
+    'POST',
+    reservePost('abc', 'xyz'),
+    400,
+    errorAssertion('Valid patron and item copy IDs are required.')
 );
 
-addTest($tests, 'Decimal IDs', $url, 'POST', reservePost('1.5', '2.5'), 400,
-    fn($r) => assertReserveError($r, 'Valid patron and item copy IDs are required.')
+addTest(
+    'Decimal IDs',
+    'POST',
+    reservePost('1.5', '2.5'),
+    400,
+    errorAssertion('Valid patron and item copy IDs are required.')
 );
 
-addTest($tests, 'Array patronID', $url, 'POST',
-    ['patronID' => ['1'], 'itemCopyID' => '1'], 400,
-    fn($r) => assertReserveError($r, 'Valid patron and item copy IDs are required.')
+addTest(
+    'Array patronID',
+    'POST',
+    [
+        'patronID' => ['1'],
+        'itemCopyID' => '1'
+    ],
+    409,
+    errorAssertion('Valid patron and item copy IDs are required.')
 );
 
-addTest($tests, 'Array itemCopyID', $url, 'POST',
-    ['patronID' => '1', 'itemCopyID' => ['1']], 400,
-    fn($r) => assertReserveError($r, 'Valid patron and item copy IDs are required.')
+addTest(
+    'Array itemCopyID',
+    'POST',
+    [
+        'patronID' => '1',
+        'itemCopyID' => ['1']
+    ],
+    409,
+    errorAssertion('Valid patron and item copy IDs are required.')
 );
 
-// Item-copy lookup and reservation eligibility 
-if (validId($eligiblePatronId) && validId($missingCopyId)) {
-    addTest($tests, 'Item copy does not exist', $url, 'POST',
-        reservePost($eligiblePatronId, $missingCopyId), 409,
-        fn($r) => assertReserveError($r, 'Item copy not found.')
+if (validID($eligiblePatronId)) {
+    addTest(
+        'Item copy does not exist',
+        'POST',
+        reservePost($eligiblePatronId, $missingCopyId),
+        409,
+        errorAssertion('Item copy not found.')
     );
-} else {
-    echo "SKIP: Missing-copy test (set an eligible patron ID and FIND_ITEM_MISSING_ID)\n";
 }
 
-if (validId($eligiblePatronId) && validId($retiredCopyId)) {
-    addTest($tests, 'Retired item copy cannot be reserved', $url, 'POST',
-        reservePost($eligiblePatronId, $retiredCopyId), 409,
-        fn($r) => assertReserveError($r, 'This item copy cannot currently be reserved.')
+if (validID($eligiblePatronId) && validID($retiredCopyId)) {
+    addTest(
+        'Retired item copy cannot be reserved',
+        'POST',
+        reservePost($eligiblePatronId, $retiredCopyId),
+        409,
+        errorAssertion('This item copy cannot currently be reserved.')
     );
-} else {
-    echo "SKIP: Retired-copy test (set RESERVE_ITEM_RETIRED_COPY_ID)\n";
 }
 
-if (validId($eligiblePatronId) && validId($maintenanceCopyId)) {
-    addTest($tests, 'Maintenance item copy cannot be reserved', $url, 'POST',
-        reservePost($eligiblePatronId, $maintenanceCopyId), 409,
-        fn($r) => assertReserveError($r, 'This item copy cannot currently be reserved.')
+if (validID($eligiblePatronId) && validID($maintenanceCopyId)) {
+    addTest(
+        'Maintenance item copy cannot be reserved',
+        'POST',
+        reservePost($eligiblePatronId, $maintenanceCopyId),
+        409,
+        errorAssertion('This item copy cannot currently be reserved.')
     );
-} else {
-    echo "SKIP: Maintenance-copy test (set RESERVE_ITEM_MAINTENANCE_COPY_ID)\n";
 }
 
-// Patron lookup and membership 
-if (validId($missingPatronId) && validId($availableCopyId)) {
-    addTest($tests, 'Patron does not exist', $url, 'POST',
-        reservePost($missingPatronId, $availableCopyId), 409,
-        fn($r) => assertReserveError($r, 'Patron not found.')
+if (validID($availableCopyId)) {
+    addTest(
+        'Patron does not exist',
+        'POST',
+        reservePost($missingPatronId, $availableCopyId),
+        409,
+        errorAssertion('Patron not found.')
     );
-} else {
-    echo "SKIP: Missing-patron test (set FIND_PATRON_MISSING_ID and an available copy ID)\n";
 }
 
-if (validId($expiredPatronId) && validId($availableCopyId)) {
-    addTest($tests, 'Patron membership has expired', $url, 'POST',
-        reservePost($expiredPatronId, $availableCopyId), 409,
-        fn($r) => assertReserveError($r, 'Patron membership has expired.')
+if (validID($expiredPatronId) && validID($availableCopyId)) {
+    addTest(
+        'Patron membership has expired',
+        'POST',
+        reservePost($expiredPatronId, $availableCopyId),
+        409,
+        errorAssertion('Patron membership has expired.')
     );
-} else {
-    echo "SKIP: Expired-membership test (set FIND_PATRON_EXPIRED_ID and an available copy ID)\n";
 }
 
-if (validId($missingMembershipPatronId) && validId($availableCopyId)) {
-    addTest($tests, 'Patron has no membership expiration date', $url, 'POST',
-        reservePost($missingMembershipPatronId, $availableCopyId), 409,
-        fn($r) => assertReserveError($r, 'Patron membership has expired.')
+if (validID($missingMembershipPatronId) && validID($availableCopyId)) {
+    addTest(
+        'Patron has no membership expiration date',
+        'POST',
+        reservePost($missingMembershipPatronId, $availableCopyId),
+        409,
+        errorAssertion('Patron membership has expired.')
     );
-} else {
-    echo "SKIP: Null-membership-date test (set RESERVE_ITEM_NO_MEMBERSHIP_DATE_PATRON_ID)\n";
 }
 
-// Existing active reservation
-if (validId($eligiblePatronId) && validId($activeReservationCopyId)) {
-    addTest($tests, 'Item copy already has an active reservation', $url, 'POST',
-        reservePost($eligiblePatronId, $activeReservationCopyId), 409,
-        fn($r) => assertReserveError($r, 'This item copy already has an active reservation.')
+if (validID($eligiblePatronId) && validID($activeReservationCopyId)) {
+    addTest(
+        'Item copy already has an active reservation',
+        'POST',
+        reservePost($eligiblePatronId, $activeReservationCopyId),
+        409,
+        errorAssertion('This item copy already has an active reservation.')
     );
-} else {
-    echo "SKIP: Active-reservation test (set RESERVE_ITEM_ACTIVE_RESERVATION_COPY_ID)\n";
 }
 
-// Successful reservation
-if (validId($eligiblePatronId) && validId($availableCopyId)) {
-    addTest($tests, 'Successful reservation for an available copy', $url, 'POST',
-        reservePost($eligiblePatronId, $availableCopyId), 200,
-        fn($r) => successReservationAssertion(
-            $r, $eligiblePatronId, $availableCopyId, 'Ready'
-        ),
+if (validID($eligiblePatronId) && validID($availableCopyId)) {
+    addTest(
+        'Successful reservation for an available copy',
+        'POST',
+        reservePost($eligiblePatronId, $availableCopyId),
+        200,
+        function ($response) use ($eligiblePatronId, $availableCopyId) {
+            successReservationAssertion(
+                $response,
+                $eligiblePatronId,
+                $availableCopyId,
+                'Ready'
+            );
+        },
         $availableCopyId
     );
-} else {
-    echo "SKIP: Available-copy reservation (set RESERVE_ITEM_AVAILABLE_COPY_ID)\n";
 }
 
-// Successful unavailable copy reservation
-if (validId($eligiblePatronId) && validId($pendingCopyId)) {
-    addTest($tests, 'Successful reservation for a non-available copy', $url, 'POST',
-        reservePost($eligiblePatronId, $pendingCopyId), 200,
-        fn($r) => successReservationAssertion(
-            $r, $eligiblePatronId, $pendingCopyId, 'Pending'
-        ),
+if (validID($eligiblePatronId) && validID($pendingCopyId)) {
+    addTest(
+        'Successful reservation for a non-available copy',
+        'POST',
+        reservePost($eligiblePatronId, $pendingCopyId),
+        200,
+        function ($response) use ($eligiblePatronId, $pendingCopyId) {
+            successReservationAssertion(
+                $response,
+                $eligiblePatronId,
+                $pendingCopyId,
+                'Pending'
+            );
+        },
         $pendingCopyId
     );
-} else {
-    echo "SKIP: Pending-copy reservation (set RESERVE_ITEM_PENDING_COPY_ID)\n";
 }
 
-$pdo = null;
-
 try {
-    require __DIR__ . '/db_connect.php';
-
-    if (!isset($pdo) || !($pdo instanceof PDO)) {
-        throw new RuntimeException(
-            'db_connect.php did not provide a PDO connection in $pdo.'
-        );
-    }
 
     foreach ($tests as $test) {
         try {
             if ($test['snapshotCopyId'] !== null) {
                 assertTrue(
-                    snapshotItemCopy($pdo, $test['snapshotCopyId'], $itemCopySnapshots),
+                    snapshotItemCopy(
+                        $pdo,
+                        $test['snapshotCopyId'],
+                        $itemCopySnapshots
+                    ),
                     'Could not snapshot the configured item copy before reservation.'
                 );
             }
 
             $response = requestJson(
-                $test['url'],
+                $url,
                 $test['method'],
                 $test['postData']
             );
 
             $createdId = $response['json']['reservation']['reservationID'] ?? null;
+
             if ($createdId !== null && (int)$createdId > 0) {
                 $createdReservationIds[] = (int)$createdId;
             }
 
             assertTrue(
                 is_array($response['json']),
-                'Response was not valid JSON: ' . $response['jsonError'] .
-                '; response body: ' . $response['body']
+                "Response was not valid JSON: " .
+                $response['jsonError'] .
+                "; response body: " . $response['body']
             );
 
-            assertTrue(
-                $response['http'] === $test['expectedHttp'],
-                "Expected HTTP {$test['expectedHttp']}, received {$response['http']}."
-            );
+            if ($response['http'] !== $test['expectedHttp']) {
+                throw new Exception(
+                    "Expected HTTP " . $test['expectedHttp'] .
+                    ", received " . $response['http'] .
+                    ".\nServer response: " . $response['body']
+                );
+            }
 
             ($test['assertion'])($response);
+
+            echo "PASS: " . $test['name'] . "\n";
             $passed++;
-            echo "PASS: {$test['name']}\n";
+
         } catch (Throwable $e) {
+            echo "FAIL: " . $test['name'] .
+                " — " . $e->getMessage() . "\n";
+
             $failed++;
-            echo "FAIL: {$test['name']} — {$e->getMessage()}\n";
         }
     }
+
 } catch (Throwable $e) {
+    echo "SETUP ERROR: " . $e->getMessage() . "\n";
     $failed++;
-    echo "SETUP ERROR: {$e->getMessage()}\n";
-} finally {
-    if ($pdo instanceof PDO) {
-        try {
-            cleanupReservations(
-                $pdo,
-                $createdReservationIds,
-                $itemCopySnapshots
-            );
-        } catch (Throwable $e) {
-            $failed++;
-            echo "FAIL: Reservation cleanup — {$e->getMessage()}\n";
-        }
-    } else {
-        echo "CLEANUP NOT RUN: No PDO connection was available.\n";
-    }
+
+} 
+
+echo "\nResults: $passed passed, $failed failed, " .
+    count($tests) . " executed.\n";
+
+if ($failed > 0) {
+    exit(1);
 }
 
-echo "\nResults: {$passed} passed, {$failed} failed, " .
-     count($tests) . " executed.\n";
+exit(0);
 
-exit($failed === 0 ? 0 : 1);
 ?>
