@@ -14,9 +14,18 @@
   const confirmButton = $('confirmCheckinBtn');
   const cancelButton = $('cancelCheckinBtn');
   const messageBox = $('checkinMessage');
+  const lookupForm = document.getElementById('checkinLookupForm');
+  const lookupInput = lookupForm?.elements.namedItem('itemCopyID');
+  const resultBox = document.getElementById('checkinResult');
+  const checkinForm = document.getElementById('checkinForm');
+  const branchSelect = document.getElementById('returnBranchID');
+  const manualMode = document.getElementById('unscannableMode');
+  const lookupButton = document.getElementById('findCheckinItem');
+  const unscannableHelp = document.getElementById('unscannableHelp');
 
   if (!lookupForm || !resultBox || !checkinForm ||
       !branchSelect || !confirmation || !messageBox) {
+  if (!lookupForm || !lookupInput || !resultBox || !checkinForm || !branchSelect || !manualMode || !lookupButton || !unscannableHelp) {
     return;
   }
 
@@ -32,6 +41,19 @@
 
     if (target) {
       target.textContent = value ?? '--';
+    const element = resultBox.querySelector(`[data-field="${field}"]`);
+    if (element) {
+      element.textContent = value ?? '--';
+    }
+
+    const mapped = {
+      itemCopyID: 'summaryCopyID',
+      dueDate: 'summaryDueDate',
+    };
+    const summaryField = mapped[field];
+    if (summaryField) {
+      const target = document.querySelector(`[data-field="${summaryField}"]`);
+      if (target) target.textContent = value ?? '--';
     }
   }
 
@@ -66,6 +88,27 @@
     if (cancelButton) cancelButton.disabled = value;
 
     branchSelect.disabled = value;
+  }
+
+  function setMessage(message) {
+    const element = resultBox.querySelector('[data-field="message"]');
+    if (!element) return;
+    element.textContent = message || '';
+    element.hidden = !message;
+  }
+
+  function updateLookupMode() {
+    if (manualMode.checked) {
+      lookupButton.textContent = 'Find Manually Identified Item';
+      lookupInput.placeholder = 'Type Item Copy ID from the item';
+      unscannableHelp.textContent =
+        'Enter the Item Copy ID printed on the item. After identification, complete the regular check-in.';
+    } else {
+      lookupButton.textContent = 'Find Item';
+      lookupInput.placeholder = 'Enter Item Copy ID';
+      unscannableHelp.textContent =
+        'Barcode unreadable? Select manual identification and enter the Item Copy ID printed on the item.';
+    }
   }
 
   async function fetchJSON(url, options = {}) {
@@ -143,6 +186,17 @@
     } catch (error) {
       showMessage(error.message, true);
     }
+      setError(error.message || 'Unable to load branches.');
+    }
+  }
+
+  function clearFields() {
+    ['patronName', 'author', 'title', 'itemCopyID', 'itemType', 'branchName', 'dueDate', 'status'].forEach((field) => {
+      setField(field, '--');
+    });
+    setError('');
+    setMessage('');
+    itemInput.value = '';
   }
 
   lookupForm.addEventListener('submit', async event => {
@@ -211,6 +265,15 @@
         setError(
           'This copy does not have an active checkout.'
         );
+      setField('itemType', item.itemType || 'Unknown');
+      setField('branchName', item.branchName || item.branchID || '--');
+      setField('status', item.status || '--');
+      setField('dueDate', item.activeCheckout?.dueDate || '--');
+      setField('patronName', item.activeCheckout?.patronName || 'No active checkout');
+      itemInput.value = String(item.itemCopyID);
+
+      if (!item.activeCheckout) {
+        setError('No active checkout exists for this item copy.');
         return;
       }
 
@@ -221,6 +284,10 @@
           String(item.homeBranchID);
       }
 
+
+      if (manualMode.checked) {
+        setMessage('Item identified manually. Complete the regular check-in to record its return.');
+      }
     } catch (error) {
       setError(error.message);
     }
@@ -298,6 +365,8 @@
 
     setBusy(true);
 
+    const submitButton = checkinForm.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
     try {
       const data = await fetchJSON(
         'script/returnItem.php',
@@ -306,6 +375,10 @@
           body: formData
         }
       );
+      const data = await fetchJSON('script/returnItem.php', {
+        method: 'POST',
+        body: new FormData(checkinForm),
+      });
 
       const checkout = data.checkout || {};
 
@@ -352,6 +425,11 @@
         `${returnedTo}. Next step: ${nextStep}`
       );
 
+      setField('status', data.checkout?.status || 'Returned');
+      setField('dueDate', data.checkout?.dueDate || '--');
+      setField('branchName', data.checkout?.returnBranchID ? `Branch #${data.checkout.returnBranchID}` : '--');
+      itemInput.value = '';
+      setMessage(data.message || 'Item checked in successfully.');
     } catch (error) {
       hideConfirmation();
 
@@ -363,6 +441,9 @@
 
     } finally {
       setBusy(false);
+      setError(error.message || 'Unable to record the return.');
+    } finally {
+      submitButton.disabled = false;
     }
   });
 
@@ -375,5 +456,7 @@
   });
 
   resetDetails();
+  manualMode.addEventListener('change', updateLookupMode);
+  updateLookupMode();
   loadBranches();
 })();

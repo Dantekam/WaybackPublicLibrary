@@ -1,137 +1,341 @@
-## 1. Automated Due Date and Late Notice Reminders
+# Sprint 3 – Client Clarifications
 
-How far in advance should patrons receive reminders before an item is due (e.g., 1 day, 3 days, or 1 week)? 
-3 days for movies and books make sure you take it back or renew it
+## 1. Purpose
 
-How frequently should overdue notices be sent, and should reminders stop once an item is returned? 
-once a week
+This document summarizes the client's responses to the Wayback Public Library (WPL) development team's requirements questions for Sprint 3 and future development.
 
-What communication method would the library prefer (email, SMS, or notifications within the system)? 
-System internal that can then be decided what to do with so like a report, this is lots of late items who is it which items and how much, then they can decide what to do with it. Like email Make it a report and have library staff decide how to treat this. Utilize meaningfully
+The purpose is to clarify expected functionality, establish business rules and priorities, identify technical dependencies, and provide a consistent foundation for user stories, acceptance criteria, activity diagrams, data models, wireframes, implementation, and testing.
 
-Should reminders include information such as the item’s title, due date, and any outstanding fines? 
-Should include name of patron, the item, and when it is due. Ideally if you want to renew it here’s the link, no patron portal so might not be feasible.
+The client has emphasized that delivering a smaller set of fully functional, thoroughly tested features is preferable to implementing incomplete versions of numerous features. Final sprint commitments will therefore be determined through team capacity planning and client review.
 
-Would you prefer reminders to be sent automatically, or should librarians review and approve them first? 
-staff decide based off list generated on main or once a week. 
+---
 
-## 2. Patron Ratings and Reviews
+## 2. Automated Due Date and Overdue Notices
 
-What rating system would you prefer (e.g., 1–5 stars, written reviews, or both)? 
-1-5 stars, challenge to come up with something making it easy to take reviews (example provides on piece of paper enter that into the system) so like hey library i like this movie this is why and you collect these and have intern enter that all in the system every two months more like a batch entry rather than something attached to every movie. Implementable since no portal should be checked.
+**Q1. When should patrons receive reminders before items are due?**
 
-Should patrons only be able to review items they have previously checked out? 
-Limit to things you’ve checked out
+**Client response:** Books and movies should appear on a reminder list three days before their due dates. Patrons should be encouraged to return or renew their items.
 
-Should ratings and reviews be associated with an individual item title rather than a specific physical copy? 
-Okay with the item 
+**Decision:** Support identification of books and movies approaching their due dates, using a three-day advance reminder window.
 
-Should reviews be publicly visible to other patrons, or only accessible to library staff? 
-Reviews for everyone, make it make senses for recommendations ai based.
+**Q2. How frequently should overdue notices be generated?**
 
-Should librarians be able to moderate, edit, or remove inappropriate reviews? 
-Yes they should be able to.
+**Client response:** Once per week.
 
-## 3. AI-Based Recommendations
+**Decision:** Provide a weekly overdue report or notice list for library staff.
 
-What would you consider a successful recommendation system for patrons? 
-Read all of these hobbit books so what do you recommend based on previous loans and reviews suggesting something from inventory we have that might be similar and can be based on other reviews.
+**Q3. How should reminders be delivered?**
 
-Should recommendations be based primarily on previous loans, ratings, reviews, or a combination of these? 
-Combination 
+**Client response:** The system should generate an internal list or report identifying overdue items, responsible patrons, and applicable amounts. Library staff will decide whether and how to contact patrons.
 
-Would you prefer recommendations for items already available within the library’s collection, or should they also suggest items the library could potentially acquire? 
-Yes
+**Decision:** Prioritize staff-facing reporting rather than automated email or SMS integration.
 
-Should recommendations be generated automatically, or only when requested by a patron or librarian? 
-Prompted too
+**Q4. What information should reminders contain?**
 
-Are there any privacy concerns or restrictions regarding the use of patrons’ borrowing histories and personal preferences? 
-None at all
+**Client response:** Include the patron's name, item information, and due date. A renewal link would be desirable, but a patron-facing portal is not currently available.
 
-Library does it or kiosk in library people can use, I would just at this point use librarian as only user for Jane Doe given her history what else would you recommend can tell her or or she look it up herself.
+**Decision:** Display patron identification, item details, and due dates. Direct patron renewal links are outside the current implementation scope.
 
-## 4. Dashboard and Trend Analysis
+**Q5. Should reminders be sent automatically?**
 
-Which metrics would be most important for library administrators to monitor (e.g., total checkouts, active patrons, overdue items, outstanding fines, or collected fines)? 
-How many transactions over time, patron list how many we have how many we had last year how many items the development of all of these, overall financials, cost on books and purchasing dates and fines. Show them over time.
+**Client response:** Staff should review the generated list and determine what action to take.
 
-Should the dashboard display information for the entire library system, individual branches, or both? 
-For everything and can filter by branch etc. If can only do it with one thing then the entire system.
+**Decision:** Generate staff-accessible reminder and overdue reports. Sending external notifications remains a staff-directed activity.
 
-What time periods would be most useful for viewing trends (daily, weekly, monthly, or yearly)? 
-At least weekly.
+**Open consideration:** The client did not specify a pre-due reminder period for periodicals.
 
-Should administrators be able to filter dashboard information by item type, branch, or date range? 
-Yes they should
+---
 
-What financial information should be included, considering the system currently focuses primarily on fines rather than broader library accounting? 
-Fines and costs of books no information about anything else. 
+## 3. Patron Ratings and Reviews
 
-## 5. Traditional and NLP-Based Search
+**Q6. What type of rating and review system should WPL support?**
 
-Which records should librarians be able to search (items, patrons, checkouts, reservations, fines, etc.)? 
-Items and patrons. Can enter wrong spelling and still show, right now very strict. Look for item and see who has it and when is it due, if patrons I can see everything they checked out and when its due, and what feed are in the system.
+**Client response:** A five-star rating system with optional written reviews. Because there is no patron portal, reviews may be collected on paper and entered periodically by library personnel.
 
-What search criteria would be most useful for each record type (title, author, patron ID, branch, item type, etc.)? 
-Kind of everything really only looking for IDs more helpful to have like titles and stuff, the more ways ti search the better.
+**Decision:** Support staff entry of patron ratings and written reviews, potentially through batch entry.
 
-Should searches support partial matches, multiple filters, and sorting? 
-Yes that would be awesome.
+**Q7. Who may submit reviews?**
 
-For NLP-based searching, what types of natural-language questions would you expect the system to understand? 
-For example, “Show me all overdue books at the Central Library.” If you can do it like that would be great, but don’t be so strict. If I have a misspelling and enter only part of a book or title or enter it incorrectly you might still get a result is how it should be, don’t need whole interaction just need a more forgiving search system. 
+**Client response:** Patrons should only review items they have previously borrowed.
 
-Should natural-language search be limited to retrieving information, or should it also be able to initiate actions within the system? 
-Just search
+**Decision:** Validate that a patron has a historical checkout associated with the reviewed catalog item.
 
-## 6. Library Room Reservations
+**Q8. Should reviews be associated with titles or physical copies?**
 
-What types of rooms would be available for reservation, and would availability differ between library branches? 
-Lets just assume each branch has a community room that can be reserved every-time library open and just one room at each branch. I would like to organize knitting circle monday at 4 pm at the central branch. 
+**Client response:** Reviews should be associated with the catalog item rather than an individual copy.
 
-Who should be permitted to reserve rooms (registered patrons, community organizations, library staff, or anyone)? 
-Registered patrons only. So someone booking the room in their name they must be patrons but they would be able to have other people. Someone is responsible for it with current membership they should say what title of meeting the day the time how many people.
+**Decision:** Store reviews against the catalog item record.
 
-Should reservations have time limits, maximum occupancy requirements, or restrictions on how far in advance they can be made? 
-Up to 15 Opening hours of library can reserve fir whole day. No limit
+**Q9. Who should be able to view reviews?**
 
-Should room reservations require librarian approval, or should they be automatically confirmed when a room is available? 
-Can do automatic its a library person that puts that in. 
+**Client response:** Reviews should be available for broader viewing and should support future recommendation functionality.
 
-How should the system handle cancellations, scheduling conflicts, and recurring community events? 
-Can do cancellations, scheduling conflicts no because if its scheduled so that would have to find a different time. Have a list of reservations.
+**Decision:** Design review data for future public-facing use, while the current application remains primarily staff-operated.
 
-## 7. Community Suggestions for Item Purchases
+**Q10. Should librarians moderate reviews?**
 
-Who should be allowed to submit purchase suggestions (registered patrons, library staff, or the general public)? 
-Anybody so like a list that is entered into the system You can make this an item, but it’s not available. We can make this lower priority because we as a process we have lets say a box and people put suggestions and we will use the suggestions and put in the items in the catalog but the status is request a purchase not in the library system yet and if we have money it can go from request purchase to available. Since we have the list of the peoples suggestions we would like to have information in system and when we decide to purchase it we can say okay this is the item make it be active now. Allow us to enter record even though it us not in yet. Lower priority because collecting suggestions can be made outside of system. Can be for anyone not just registered patrons. Not tied to patron its triggering an entry in the database that then becomes an item that is not yet available in our end. Status of suggested
+**Client response:** Yes.
 
-What information should be required when submitting a suggestion (title, author, item type, reason for request, etc.)? 
-Once you out it into the system should have same information as all of our other items so same form but probably won’t have price or lit have date and status would be recommended or scheduled for purchase and we can change to complete once we get the item. Can search fir that once we do our filtering and stuff too like all items suggested or all items for purchase. 
+**Decision:** Provide librarians with the ability to review, modify, or remove inappropriate content.
 
-Should librarians be able to review, approve, reject, or track suggestions through different stages? 
-Outside of system through paper suggestion. 
+**Implementation consideration:** Ratings and reviews are desirable enhancements but must be prioritized against more essential circulation and reporting functionality.
 
-Should patrons be able to view or vote on suggestions submitted by others? 
-No
+---
 
-Should the system notify patrons when their suggested item has been approved, purchased, or added to the collection? 
-No, but could allow reservations so once it comes in someone already gets it, so could go from scheduled for purchase to on hold. 
+## 4. AI-Based Recommendations
 
-## 8. General Prioritization and Feasibility
+**Q11. What should the recommendation system accomplish?**
 
-Of the seven proposed features, which would provide the greatest immediate value to WPL? 
-I think dashboard and search is the, maybe the highest priority followed by the search if you do dashboard right you already have late notice reminders in there too, if good dashboard then should be able to filter for overdue items and filter for patrons and have late fees so those things kind of go together, and next highest would be room reservations then the ratings, but client acknowledges if team decides room too complicated and do reviews next and lower priority would be automated due dates and community suggestions. Just from their view can calibrate the priority with the priority for the effort it takes. Make honest estimate of what we can reasonably complete without slacking but without working yourselves to death. Before start developing more complex things show the client what we are planning so we can at least can get an okay so we at least have something without surprise in the review.
+**Client response:** Recommend items related to a patron's previous borrowing history, interests, ratings, and reviews. For example, patrons who have borrowed several related books could receive suggestions for similar titles.
 
-Are there any features that must be completed before others can be implemented? 
-More for us to decide what is built on something else when you talk to client next that is something to bring up. We want to complete this but we need to complete this first does this make sense.
+**Decision:** Recommendations should consider historical loans and review information when available.
 
-Given the limited development time remaining, would you prefer a smaller number of fully functional features or basic prototypes of several features? 
-Smaller number of fully functional. 
+**Q12. What information should recommendations use?**
 
-Are there any budget, privacy, technical, or operational constraints we should consider before committing to these features? 
-It’s only library privacy not a big concern since library internal. Really only have library staff using the system. Assuming everyone using the system has access to everything in the system
+**Client response:** A combination of previous loans, ratings, and reviews.
 
-Should we make user stories for the fixes? 
-Only if they need it, for a couple such as the renewing a patron membership and evaluating and paying a fine those may need models to go along with the process and a full user story with acceptance criteria.
+**Decision:** These data sources should inform the recommendation process.
+
+**Q13. Should recommendations include items outside WPL's current collection?**
+
+**Client response:** Yes, recommendations may include items beyond the existing inventory.
+
+**Decision:** Support current-collection recommendations as a possible initial implementation, with external-item suggestions as an enhancement.
+
+**Q14. Should recommendations be automatic or requested?**
+
+**Client response:** Staff or patrons should be able to request recommendations.
+
+**Decision:** Prioritize an on-demand recommendation workflow.
+
+**Q15. How should patrons access recommendations?**
+
+**Client response:** A librarian-operated interface is sufficient for the initial implementation. A future kiosk could allow patrons to access recommendations themselves.
+
+**Decision:** The initial system may allow staff to select a patron and request suggestions based on the patron's recorded history.
+
+**Q16. Are there additional privacy constraints?**
+
+**Client response:** The client did not identify additional restrictions and expects staff to access the relevant library data.
+
+**Decision:** Use the existing staff-operated model for requirements planning, while limiting access and use of patron borrowing histories to legitimate library purposes.
+
+**Implementation consideration:** A recommendation prototype should only be committed if the team can implement and meaningfully evaluate it within available capacity.
+
+---
+
+## 5. Administrative Dashboard and Trend Analysis
+
+**Q17. Which indicators should the dashboard display?**
+
+**Client response:** Trends in circulation transactions, patron counts, collection size, acquisition costs, and fines. The client wants to understand how these figures change over time.
+
+**Decision:** Prioritize a dashboard displaying historical operational and financial trends.
+
+**Q18. Should the dashboard cover individual branches or WPL as a whole?**
+
+**Client response:** Ideally both, with the ability to filter by branch. If necessary, begin with library-wide reporting.
+
+**Decision:** Library-wide reporting is the minimum scope. Branch-specific views are desirable.
+
+**Q19. What reporting periods should be supported?**
+
+**Client response:** At least weekly.
+
+**Decision:** Support weekly trends, with additional time ranges if feasible.
+
+**Q20. Should dashboard results support filters?**
+
+**Client response:** Yes, including branch, item type, and date range.
+
+**Decision:** Provide filters where the underlying data supports them.
+
+**Q21. What financial information is available?**
+
+**Client response:** Item acquisition costs and library fines. Broader accounting information is not currently recorded.
+
+**Decision:** Limit financial reporting to available collection-cost and fine information. Do not imply that the system provides complete organizational financial statements.
+
+**Implementation consideration:** The existing Item Statuses interface may serve as a foundation for operational reporting, but trend analysis may require separate summary queries and visualizations.
+
+---
+
+## 6. Traditional and Natural-Language Search
+
+**Q22. What information should librarians be able to search?**
+
+**Client response:** Primarily catalog items and patrons, including associated circulation information such as current loans, due dates, and fines.
+
+**Decision:** Prioritize item and patron search with relevant linked records.
+
+**Q23. Which search fields should be supported?**
+
+**Client response:** Searches should not be limited to identifiers. Item titles, names, and other identifying information should be supported.
+
+**Decision:** Provide multiple searchable fields where practical.
+
+**Q24. Should search support partial matches and filters?**
+
+**Client response:** Yes. The client values flexible matching, filtering, and sorting.
+
+**Decision:** Support partial keyword matching, practical filtering, and relevant sorting.
+
+**Q25. What are the expectations for NLP-based search?**
+
+**Client response:** Natural-language queries would be desirable, but the most important requirement is a forgiving search experience that tolerates partial names, incomplete titles, and spelling mistakes.
+
+**Decision:** Prioritize improved keyword and approximate matching. Full conversational natural-language interpretation is not required for the initial implementation.
+
+**Q26. Should search be able to modify records?**
+
+**Client response:** No. Search should retrieve information only.
+
+**Decision:** Search functionality will be read-only.
+
+---
+
+## 7. Library Room Reservations
+
+**Q27. What rooms should be available for reservation?**
+
+**Client response:** Assume each library branch has one reservable community room, available during library operating hours.
+
+**Decision:** Model one community room per branch for the initial implementation.
+
+**Q28. Who can reserve rooms?**
+
+**Client response:** A registered patron with a current membership must be responsible for the reservation. The room may be used by additional attendees.
+
+**Decision:** Associate each reservation with one eligible patron.
+
+**Q29. What information must be recorded?**
+
+**Client response:** Meeting or event title, date, time, and expected attendance.
+
+**Decision:** Record the responsible patron, room, event title, start and end times, and attendee count.
+
+**Q30. Are there time or capacity limits?**
+
+**Client response:** A maximum of 15 attendees. Reservations may last an entire operating day, and no advance-booking limit was specified.
+
+**Decision:** Enforce a maximum attendance of 15 and require reservations to fall within operating hours.
+
+**Q31. Do reservations require separate approval?**
+
+**Client response:** Librarians will enter reservations into the system. Additional approval is unnecessary.
+
+**Decision:** Confirm valid, nonconflicting reservations when saved by staff.
+
+**Q32. How should cancellations and conflicts be handled?**
+
+**Client response:** Cancellations should be supported. Existing reservations must prevent overlapping bookings, and staff should select another time when a conflict occurs.
+
+**Decision:** Support cancellation, reservation listings, and overlap prevention.
+
+**Open consideration:** Recurring reservation creation was not explicitly confirmed as a requirement.
+
+---
+
+## 8. Community Purchase Suggestions
+
+**Q33. Who may suggest items for purchase?**
+
+**Client response:** Anyone, including nonregistered community members. Suggestions may initially be submitted through paper forms and entered by library staff.
+
+**Decision:** Suggestions do not require a Patron record.
+
+**Q34. How should suggestions be represented?**
+
+**Client response:** Suggested items should be represented in the system even before they have been acquired. The library should be able to identify items being considered for purchase and eventually activate acquired items.
+
+**Decision:** Support distinguishing suggested or planned acquisitions from items already owned by WPL.
+
+**Q35. What information should be recorded?**
+
+**Client response:** Use information similar to normal catalog item entry, while allowing unavailable fields, such as acquisition cost or date, to remain unspecified.
+
+**Decision:** Allow incomplete acquisition information for proposed items.
+
+**Q36. How should suggestions be approved or rejected?**
+
+**Client response:** Formal review may take place outside the system using paper-based procedures.
+
+**Decision:** A comprehensive digital suggestion-approval workflow is not required.
+
+**Q37. Should patrons vote on suggestions?**
+
+**Client response:** No.
+
+**Decision:** Voting functionality is out of scope.
+
+**Q38. Should patrons receive notifications?**
+
+**Client response:** No notification functionality is required. A future reservation or hold for an anticipated item could be desirable.
+
+**Decision:** Notifications and advance holds are optional future enhancements.
+
+**Implementation consideration:** Purchase suggestions are lower priority than circulation stability, reporting, and search.
+
+---
+
+## 9. Sprint Priorities and Feasibility
+
+**Q39. Which new features provide the greatest immediate value?**
+
+**Client response:** The dashboard and improved search are the highest priorities. A well-designed dashboard may also support overdue and reminder reporting. Room reservations and patron reviews are additional desirable enhancements.
+
+**Decision:** Prioritize dashboard/reporting and search during sprint planning, while accounting for the effort required to complete existing functionality.
+
+**Q40. Should the team deliver many prototypes or fewer complete features?**
+
+**Client response:** Fewer fully functional features.
+
+**Decision:** Limit sprint commitments to work that can be modeled, developed, integrated, tested, and demonstrated.
+
+**Q41. Who is expected to operate the system?**
+
+**Client response:** Primarily library staff. Staff are assumed to have access to the necessary administrative functionality.
+
+**Decision:** Maintain the staff-operated application model for this sprint. A separate patron portal is not required.
+
+**Q42. Do maintenance fixes require new user stories?**
+
+**Client response:** New stories should be created where needed. Patron membership renewal and fine evaluation/payment are examples of workflows that may require user stories, activity diagrams, and other supporting models.
+
+**Decision:** Retain existing story identifiers where available, refine incomplete acceptance criteria, and create new stories only for distinct functionality.
+
+**Q43. When should the client review proposed designs?**
+
+**Client response:** The team should show proposed user stories, models, and interface designs before implementing complex features.
+
+**Decision:** Obtain client feedback on the planned workflow and interfaces before major development commitments.
+
+---
+
+## 10. Overall Requirements and Development Implications
+
+Sprint 3 planning should reflect the following:
+
+1. Complete and validate existing essential circulation functionality before expanding into lower-priority features.
+2. Maintain clear traceability between user stories, acceptance criteria, diagrams, wireframes, data models, implementation, and test evidence.
+3. Prioritize improved administrative search and historical reporting.
+4. Incorporate overdue and upcoming-due reporting into the dashboard where feasible.
+5. Model new entities only when needed to support selected stories.
+6. Preserve the staff-operated system design rather than introducing an unsupported patron portal.
+7. Review complex workflows and models with the client before implementation.
+8. Keep the product backlog and sprint task board current throughout development.
+9. Prefer a small number of complete, demonstrable stories over a broad collection of unfinished features.
+
+## 11. Remaining Decisions
+
+The following points should be resolved during story refinement or client review:
+
+- Determine the final set of stories the team can reasonably commit to for Sprint 3.
+- Confirm which operational dashboard metrics constitute the minimum acceptable deliverable.
+- Determine the minimum acceptable approximate-search behavior, including how spelling mistakes should be handled.
+- Confirm specific room operating hours if room reservations are selected.
+- Define whether purchase suggestions should be stored separately from owned catalog items if that feature is selected.
+- Determine whether ratings/reviews and AI recommendations are feasible within available development capacity.
+- Confirm simplified check-in, routing, and reservation workflows in response to Sprint 2 feedback.
+
+These clarifications represent the client's guidance. They do not automatically commit the team to implementing every proposed enhancement during Sprint 3.
