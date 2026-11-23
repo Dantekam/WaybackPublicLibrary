@@ -1257,3 +1257,346 @@ tbody tr:hover {
     flex-direction: column;
   }
 }
+/* ================================================================
+   PATRON RECORD PAGE
+   ================================================================ */
+
+.patron-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* ---- Search panel ---- */
+
+.patron-search-panel,
+.patron-record {
+    background: #fff;
+    border: 1px solid #e2e2e2;
+    border-radius: .5rem;
+    padding: 1.25rem 1.5rem;
+}
+
+.patron-search-form {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+}
+
+.patron-search-form > div {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+}
+
+.patron-search-form label {
+    font-size: .85rem;
+    font-weight: 600;
+    color: #444;
+}
+
+.patron-search-form input[type="number"] {
+    padding: .55rem .75rem;
+    border: 1px solid #c8c8c8;
+    border-radius: .375rem;
+    font: inherit;
+    width: 10rem;
+}
+
+.patron-search-form input[type="number"]:focus {
+    outline: 2px solid #6b8afd;
+    outline-offset: 1px;
+    border-color: transparent;
+}
+
+/* ---- Panel headings (shared with dashboard look) ---- */
+
+.patron-panel-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.patron-panel-heading h2,
+.patron-panel-heading h3 {
+    margin: .15rem 0 0;
+    font-size: 1.15rem;
+}
+
+/* ---- Record header ---- */
+
+.patron-record-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 1.25rem;
+}
+
+.patron-record-heading h2 {
+    margin: .15rem 0 .25rem;
+    font-size: 1.5rem;
+}
+
+.patron-id-line {
+    margin: 0;
+    color: #666;
+    font-size: .9rem;
+}
+
+.patron-status {
+    display: inline-block;
+    padding: .3rem .8rem;
+    border-radius: 999px;
+    background: #e6f4ea;
+    color: #1e6b2e;
+    font-size: .8rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+}
+
+.patron-status.is-blocked {
+    background: #fde7e7;
+    color: #b3261e;
+}
+
+/* ---- Summary cards ---- */
+
+.patron-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.patron-summary-item {
+    background: #f7f8fa;
+    border-radius: .5rem;
+    padding: .9rem 1rem;
+}
+
+.patron-summary-item p {
+    margin: 0 0 .25rem;
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: #666;
+}
+
+.patron-summary-item strong {
+    display: block;
+    font-size: 1.4rem;
+    line-height: 1.1;
+    margin-bottom: .15rem;
+}
+
+.patron-summary-item strong.is-error {
+    color: #b3261e;
+}
+
+.patron-summary-item small {
+    color: #777;
+    font-size: .8rem;
+}
+
+/* ---- Sections (checkouts, fines, membership) ---- */
+
+.patron-loans-section {
+    padding-top: 1.25rem;
+    border-top: 1px solid #eee;
+    margin-top: 1.25rem;
+}
+
+.patron-loans-section:first-of-type {
+    border-top: 0;
+    margin-top: 0;
+    padding-top: 0;
+}
+
+.patron-loan-count {
+    font-size: .85rem;
+    color: #666;
+    background: #f0f1f4;
+    padding: .25rem .65rem;
+    border-radius: 999px;
+}
+
+/* ---- Tables ---- */
+
+.patron-table-wrap {
+    overflow-x: auto;
+    border: 1px solid #eee;
+    border-radius: .5rem;
+}
+
+.patron-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .9rem;
+}
+
+.patron-table th,
+.patron-table td {
+    padding: .65rem .85rem;
+    text-align: left;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.patron-table th {
+    background: #f7f8fa;
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: #555;
+    font-weight: 600;
+}
+
+.patron-table tr:last-child td {
+    border-bottom: 0;
+}
+
+.patron-table tbody tr:hover {
+    background: #fafbfd;
+}
+
+/* ---- Empty / messages ---- */
+
+.patron-empty {
+    margin: .5rem 0;
+    padding: 1rem 1.25rem;
+    background: #f7f8fa;
+    border-radius: .5rem;
+    color: #666;
+    font-style: italic;
+    font-size: .9rem;
+}
+
+.patron-message {
+    margin-top: .75rem;
+    padding: .65rem .9rem;
+    background: #eef4ff;
+    border-left: 3px solid #6b8afd;
+    border-radius: .25rem;
+    font-size: .9rem;
+    color: #234;
+}
+
+.patron-message.is-error {
+    background: #fde7e7;
+    border-left-color: #b3261e;
+    color: #6b1a15;
+}
+
+.patron-message:empty {
+    display: none;
+}
+
+/* ---- Action buttons ---- */
+
+.patron-action-button {
+    padding: .5rem .9rem;
+    border: 1px solid #4a5cd0;
+    border-radius: .375rem;
+    background: #4a5cd0;
+    color: #fff;
+    font: inherit;
+    font-size: .85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease;
+}
+
+.patron-action-button:hover {
+    background: #3a4bb8;
+    border-color: #3a4bb8;
+}
+
+.patron-action-button:focus-visible {
+    outline: 2px solid #6b8afd;
+    outline-offset: 2px;
+}
+
+.patron-action-button:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+    background: #9aa0c8;
+    border-color: #9aa0c8;
+}
+
+/* ---- Forms inside the record ---- */
+
+.patron-inline-form {
+    margin: 0;
+}
+
+.patron-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: .75rem;
+}
+
+.patron-membership-actions {
+    display: flex;
+    gap: .75rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    margin-top: .5rem;
+}
+
+.patron-membership-actions label {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    font-size: .85rem;
+    font-weight: 600;
+    color: #444;
+}
+
+.patron-membership-actions select {
+    padding: .5rem .75rem;
+    border: 1px solid #c8c8c8;
+    border-radius: .375rem;
+    font: inherit;
+    min-width: 9rem;
+}
+
+.patron-membership-actions select:focus {
+    outline: 2px solid #6b8afd;
+    outline-offset: 1px;
+    border-color: transparent;
+}
+
+/* ---- Responsive ---- */
+
+@media (max-width: 600px) {
+    .patron-record-heading {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .patron-search-form input[type="number"] {
+        width: 100%;
+    }
+
+    .patron-search-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .patron-form-actions {
+        justify-content: stretch;
+    }
+
+    .patron-form-actions .patron-action-button {
+        width: 100%;
+    }
+}
