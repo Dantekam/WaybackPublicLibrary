@@ -40,3 +40,7 @@ DELETE FROM Reservation
 WHERE itemCopyID = 10059;
 DELETE FROM Reservation
 WHERE itemCopyID = 10060;
+
+// testAddItem.php
+DELETE FROM Item_Copy
+WHERE ItemCopyID = 10061;
