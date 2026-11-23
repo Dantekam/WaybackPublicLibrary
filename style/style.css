@@ -14,6 +14,7 @@
   --color-primary: #45286b;
   --color-accent: #6b4528;
   --radius: 3px;
+  --shadow-card: 0 3px 12px rgba(27, 74, 47, .06);
 
   /* ---- Additional tokens derived from the palette above ---- */
   --color-primary-dark: #2d174a;  /* hover / focus / accent borders */
@@ -545,7 +546,7 @@ tbody tr:hover {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 8px;
-  box-shadow: 0 3px 12px rgba(27, 74, 47, .05);
+  box-shadow: var(--shadow-card);
 }
 
 .dashboard-filter-bar h2 {
@@ -615,7 +616,7 @@ tbody tr:hover {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 8px;
-  box-shadow: 0 3px 12px rgba(27, 74, 47, .05);
+  box-shadow: var(--shadow-card);
 }
 
 .dashboard-panel-heading {
@@ -691,7 +692,7 @@ tbody tr:hover {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 8px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, .24);
+  box-shadow: var(--shadow-card);
 }
 
 .dashboard-report-dialog::backdrop {
@@ -765,9 +766,10 @@ tbody tr:hover {
 .dashboard-mini-chart {
   min-width: 0;
   padding: 14px 10px 8px;
-  background: var(--color-page);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 6px;
+  box-shadow: var(--shadow-card);
 }
 
 .dashboard-mini-chart h3 {
@@ -935,9 +937,10 @@ tbody tr:hover {
   gap: 10px;
   margin-top: 22px;
   padding: 18px 20px;
-  background: #e8efe9;
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 8px;
+  box-shadow: var(--shadow-card);
 }
 
 .dashboard-actions h2 {
