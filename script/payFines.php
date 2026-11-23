@@ -9,7 +9,7 @@ function respond($data, $code = 200) {
     exit;
 }
 
-// Only accept POST requests.
+// Only accept POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     respond([
         'ok' => false,
@@ -17,7 +17,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     ], 405);
 }
 
-// Validate the Fine ID.
 $fineRaw = $_POST['fineID'] ?? '';
 
 if (!is_string($fineRaw) ||
@@ -29,7 +28,6 @@ if (!is_string($fineRaw) ||
     ], 400);
 }
 
-// Validate the payment amount.
 $amountRaw = $_POST['paymentAmount'] ?? '';
 
 if (!is_string($amountRaw) ||
@@ -41,7 +39,6 @@ if (!is_string($amountRaw) ||
     ], 400);
 }
 
-// Validate the payment method.
 $paymentMethod = trim($_POST['paymentMethod'] ?? '');
 
 if (!is_string($paymentMethod) || $paymentMethod === '') {
@@ -57,7 +54,7 @@ $paymentCents = (int)round((float)$amountRaw * 100);
 try {
     $pdo->beginTransaction();
 
-    // 1. Retrieve and lock the fine.
+    // 1. Retrieve fine
     $stmt = $pdo->prepare(
         'SELECT
             FineID,
@@ -77,7 +74,7 @@ try {
         throw new DomainException('Fine not found.');
     }
 
-    // 2. Calculate the remaining balance.
+    // 2. Calculate the remaining balance
     $fineCents = (int)round((float)$fine['Amount'] * 100);
     $paidCents = (int)round((float)$fine['AmountPaid'] * 100);
     $remainingCents = $fineCents - $paidCents;
@@ -86,14 +83,14 @@ try {
         throw new DomainException('This fine has already been resolved.');
     }
 
-    // 3. Ensure the payment does not exceed the balance.
+    // 3. make sure the payment does not exceed the balance
     if ($paymentCents > $remainingCents) {
         throw new DomainException(
             'Payment exceeds the remaining fine balance.'
         );
     }
 
-    // 4. Calculate the updated payment total.
+    // 4. Calculate the updated payment total
     $newAmountPaid = $paidCents + $paymentCents;
     $newBalance = $fineCents - $newAmountPaid;
 
@@ -101,7 +98,7 @@ try {
         ? 'Resolved'
         : 'Outstanding';
 
-    // 5. Record the payment.
+    // 5. Record the payment
     $stmt = $pdo->prepare(
         'INSERT INTO FinePayment (
             FineID,
@@ -119,7 +116,7 @@ try {
 
     $paymentID = $pdo->lastInsertId();
 
-    // 6. Update the fine balance and status.
+    // 6. Update the fine balance and status
     $stmt = $pdo->prepare(
         'UPDATE Fine
          SET AmountPaid = ?,
@@ -133,7 +130,7 @@ try {
         $fineID
     ]);
 
-    // 7. Verify the updated fine.
+    // 7. Verify the updated fine
     $stmt = $pdo->prepare(
         'SELECT Amount, AmountPaid, Status
          FROM Fine
@@ -153,7 +150,7 @@ try {
 
     $pdo->commit();
 
-    // 8. Display the updated payment information.
+    // 8. Display the updated payment information
     respond([
         'ok' => true,
         'message' => 'Fine payment recorded successfully.',
