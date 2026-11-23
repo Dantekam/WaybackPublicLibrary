@@ -1,0 +1,42 @@
+Use the following sql queries before using the test files
+
+// testRecordCheckout.php
+DELETE FROM CheckOut
+ WHERE ItemCopyID IN (10021, 10022, 10023);
+ UPDATE Item_Copy
+ SET Status = 'Available'
+ WHERE ItemCopyID IN (10021, 10022, 10023);
+
+// testReturnItem.php
+START TRANSACTION;
+ 
+ UPDATE CheckOut
+ SET
+     ReturnDate = NULL,
+     ReturnBranchID = NULL
+ WHERE ItemCopyID = 10021
+   AND ReturnDate IS NOT NULL;
+  
+ UPDATE Item_Copy
+ SET
+     Status = 'CheckedOut',
+     CurrentBranchID = HomeBranchID,
+     RoutingStatus = "NotApplicable",
+     DestinationBranchID = NULL
+ WHERE ItemCopyID = 10021;
+ 
+ COMMIT;
+
+// testRenewItem.php
+UPDATE CheckOut
+SET
+    DueDate = '2026-11-25',
+    RenewalCount = 0
+WHERE ItemCopyID = 10048
+  AND ReturnDate IS NULL;
+
+// testReserveItem.php
+DELETE FROM Reservation
+WHERE itemCopyID = 10059;
+DELETE FROM Reservation
+WHERE itemCopyID = 10060;

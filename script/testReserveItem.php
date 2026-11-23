@@ -8,6 +8,13 @@
  *
  * Requires PHP's cURL extension and the same database connection used by
  * reserveItem.php.
+ * 
+ * CLEANUP:
+ * run the following sql statements
+ * DELETE FROM Reservation
+ * WHERE itemCopyID = 10059;
+ * DELETE FROM Reservation
+ * WHERE itemCopyID = 10060;
  */
 
 require_once __DIR__ . '/../loadEnv.php';
@@ -26,23 +33,23 @@ if (!extension_loaded('curl')) {
 $eligiblePatronId = '41';
 $expiredPatronId = '42';
 $missingPatronId = '999999';
-$missingMembershipPatronId = '43';
+$missingMembershipPatronId = '47';
 
-$availableCopyId = '10021';
+$availableCopyId = '10060';
 $pendingCopyId = '10024';
-$retiredCopyId = '10025';
-$maintenanceCopyId = '10026';
+$retiredCopyId = '10058';
+$maintenanceCopyId = '10057';
 $activeReservationCopyId = '10049';
 $missingCopyId = '999999';
+$notAvailableCopyId = '10059';
 
 $tests = [];
 $passed = 0;
 $failed = 0;
 
-$itemCopySnapshots = [];
 $createdReservationIds = [];
 
-function addTest($name, $method, $postData, $expectedHttp, $assertion, $snapshotCopyId = null)
+function addTest($name, $method, $postData, $expectedHttp, $assertion)
 {
     global $tests;
 
@@ -52,7 +59,6 @@ function addTest($name, $method, $postData, $expectedHttp, $assertion, $snapshot
         'postData' => $postData,
         'expectedHttp' => $expectedHttp,
         'assertion' => $assertion,
-        'snapshotCopyId' => $snapshotCopyId
     ];
 }
 
@@ -392,21 +398,21 @@ if (validID($eligiblePatronId) && validID($availableCopyId)) {
     );
 }
 
-if (validID($eligiblePatronId) && validID($pendingCopyId)) {
+if (validID($eligiblePatronId) && validID($notAvailableCopyId)) {
     addTest(
         'Successful reservation for a non-available copy',
         'POST',
-        reservePost($eligiblePatronId, $pendingCopyId),
+        reservePost($eligiblePatronId, $notAvailableCopyId),
         200,
-        function ($response) use ($eligiblePatronId, $pendingCopyId) {
+        function ($response) use ($eligiblePatronId, $notAvailableCopyId) {
             successReservationAssertion(
                 $response,
                 $eligiblePatronId,
-                $pendingCopyId,
+                $notAvailableCopyId,
                 'Pending'
             );
         },
-        $pendingCopyId
+        $notAvailableCopyId
     );
 }
 
@@ -414,16 +420,6 @@ try {
 
     foreach ($tests as $test) {
         try {
-            if ($test['snapshotCopyId'] !== null) {
-                assertTrue(
-                    snapshotItemCopy(
-                        $pdo,
-                        $test['snapshotCopyId'],
-                        $itemCopySnapshots
-                    ),
-                    'Could not snapshot the configured item copy before reservation.'
-                );
-            }
 
             $response = requestJson(
                 $url,
