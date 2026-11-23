@@ -80,7 +80,7 @@ if (!in_array($status, $allowedStatuses, true)) {
 try {
     // Check for an existing physical copy.
     $checkCopy = $pdo->prepare(
-        'SELECT 1 FROM Item_Copy WHERE ItemCopyID = ?'
+        'SELECT * FROM Item_Copy WHERE ItemCopyID = ?'
     );
     $checkCopy->execute([(int)$itemCopyID]);
 

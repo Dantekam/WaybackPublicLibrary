@@ -43,7 +43,7 @@ $finesCopyID = '10051';
 $renewalLimitCopyID = '10050';
 $noDueDateCopyID = '10052';
 $noLoanPeriodCopyID = '10053';
-$overdueCopyID = '10054';
+$overdueCopyID = '10056';
 $multipleActiveCheckoutsCopyID = '10055';
 
 $availableBookId = '10021';

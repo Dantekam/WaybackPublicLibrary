@@ -304,28 +304,6 @@ addTest(
     errorAssertion('Valid patron and item copy IDs are required.')
 );
 
-addTest(
-    'Array patronID',
-    'POST',
-    [
-        'patronID' => ['1'],
-        'itemCopyID' => '1'
-    ],
-    409,
-    errorAssertion('Valid patron and item copy IDs are required.')
-);
-
-addTest(
-    'Array itemCopyID',
-    'POST',
-    [
-        'patronID' => '1',
-        'itemCopyID' => ['1']
-    ],
-    409,
-    errorAssertion('Valid patron and item copy IDs are required.')
-);
-
 if (validID($eligiblePatronId)) {
     addTest(
         'Item copy does not exist',

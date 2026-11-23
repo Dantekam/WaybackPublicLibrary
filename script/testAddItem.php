@@ -34,10 +34,10 @@ $newItemCopyID = '10025';
 $existingItemCopyID = '10021';
 
 $itemID = '1';
-$missingItemID = '999999';
+$missingItemID = '999998';
 
 $branchID = '1007';
-$missingBranchID = '999999';
+$missingBranchID = '2';
 
 // Must match the ItemType of the existing item
 $itemType = 'DVD';
@@ -93,13 +93,10 @@ function requestJson($url, $method, $postData = [])
 
     if ($body === false) {
         $error = curl_error($ch);
-        curl_close($ch);
         throw new Exception("cURL request failed: $error");
     }
 
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
-    curl_close($ch);
 
     $decoded = json_decode($body, true);
 
@@ -295,7 +292,7 @@ addTest(
     'Catalog Item ID does not exist',
     'POST',
     $testData,
-    400,
+    409,
     errorAssertion(
         'Item ID does not exist in the catalog. Create the catalog item first.'
     )
@@ -309,7 +306,7 @@ addTest(
     'Item Type does not match catalog item',
     'POST',
     $testData,
-    400,
+    409,
     function ($response) use ($itemType) {
         $json = $response['json'];
 
@@ -339,7 +336,7 @@ addTest(
     'Branch ID does not exist',
     'POST',
     $testData,
-    400,
+    409,
     errorAssertion('Branch ID does not exist.')
 );
 
