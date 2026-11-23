@@ -62,5 +62,6 @@
       </aside>
     </div>
   </main>
+  <footer class="site-footer" aria-hidden="true"></footer>
 </body>
 </html>

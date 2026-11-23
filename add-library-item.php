@@ -228,7 +228,7 @@
 
         <div class="library-actions">
             <a href="statuses.php">View Item Statuses</a>
-            <a href="index.php">Back to Checkout</a>
+            <a href="index.php?page=checkout">Back to Checkout</a>
             <button type="submit" id="saveLibraryBtn"
                     class="primary-button">
                 Save Library Item
@@ -236,5 +236,6 @@
         </div>
     </form>
 </main>
+<footer class="site-footer" aria-hidden="true"></footer>
 </body>
 </html>

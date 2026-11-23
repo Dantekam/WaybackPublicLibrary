@@ -1,3 +1,9 @@
+<?php
+if (($_GET['page'] ?? '') !== 'checkout') {
+    require __DIR__ . '/dashboard.php';
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -314,6 +320,7 @@
     <script src="js/addItem.js" defer></script>
     <script src="js/checkout.js?v=20261109-2" defer></script>
 
+    <footer class="site-footer" aria-hidden="true"></footer>
 </body>
 
 </html>
