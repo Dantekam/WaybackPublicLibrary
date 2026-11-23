@@ -17,7 +17,7 @@
 
   <main class="page-container library-page">
     <nav class="library-nav" aria-label="Library tasks">
-      <a href="index.php">Checkout</a>
+      <a href="index.php?page=checkout">Checkout</a>
       <a href="add-library-item.php">Add Library Item</a>
       <a href="return-item.php">Return Item</a>
       <a href="renewal.php" aria-current="page">Renew</a>
@@ -97,5 +97,6 @@
       </div>
     </form>
   </main>
+  <footer class="site-footer" aria-hidden="true"></footer>
 </body>
 </html>
