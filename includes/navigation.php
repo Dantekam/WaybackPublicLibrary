@@ -1,10 +1,12 @@
 
 <?php
-$currentPage = basename($_SERVER['SCRIPT_NAME'] ?? '');
+$currentPage = basename($_SERVER['SCRIPT_NAME'] ?? '') .
+    (($_GET['page'] ?? '') === 'checkout' ? '?page=checkout' : '');
 
 $navigation = [
     'dashboard.php' => 'Dashboard',
-    'index.php' => 'Checkout',
+    'index.php?page=checkout' => 'Checkout',
+    'patron.php' => 'Patrons',
     'add-library-item.php' => 'Add Library Item',
     'checkin.php' => 'Check-in',
     'renewal.php' => 'Renewals',
