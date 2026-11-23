@@ -270,6 +270,7 @@ button:disabled {
   border: 1px solid var(--color-border);
   border-top: 5px solid var(--color-primary-dark);
   border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
 }
 .confirmation-card h3 {
   margin-top: 0;
@@ -286,6 +287,7 @@ button:disabled {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
 }
 .table-heading {
   padding: 15px;
@@ -1054,6 +1056,7 @@ tbody tr:hover {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
 }
 
 .patron-search-panel {
@@ -1078,6 +1081,7 @@ tbody tr:hover {
   align-items: end;
   gap: 12px;
   max-width: 620px;
+  box-shadow: var(--shadow-card);
 }
 
 .patron-search-form > div {
@@ -1096,6 +1100,7 @@ tbody tr:hover {
   padding: 9px 11px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
 }
 
 .patron-search-form button {
@@ -1135,6 +1140,7 @@ tbody tr:hover {
   padding: 6px 10px;
   border: 1px solid transparent;
   border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
   font-size: 13px;
   font-weight: 700;
 }
@@ -1278,6 +1284,7 @@ tbody tr:hover {
     border: 1px solid #e2e2e2;
     border-radius: .5rem;
     padding: 1.25rem 1.5rem;
+    box-shadow: var(--shadow-card);
 }
 
 .patron-search-form {
