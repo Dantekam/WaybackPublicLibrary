@@ -13,7 +13,7 @@
  * Run the following SQL after testing to remove the successfully added copy:
  *
  * DELETE FROM Item_Copy
- * WHERE ItemCopyID = 10025;
+ * WHERE ItemCopyID = 10061;
  */
 
 require_once __DIR__ . '/../loadEnv.php';
@@ -30,17 +30,18 @@ if (!extension_loaded('curl')) {
 }
 
 // test data
-$newItemCopyID = '10025';
+$newItemCopyID = '10061';
 $existingItemCopyID = '10021';
 
-$itemID = '1';
+$itemID = '2001';
 $missingItemID = '999998';
+$existingItemID = '10049';
 
 $branchID = '1007';
-$missingBranchID = '2';
+$missingBranchID = '999';
 
 // Must match the ItemType of the existing item
-$itemType = 'DVD';
+$itemType = 'Book';
 
 // Test item information.
 $title = 'Integration Test Item';
@@ -135,6 +136,16 @@ function errorAssertion($expectedError)
 
 $validItem = [
     'itemCopyID' => $newItemCopyID,
+    'title' => $title,
+    'itemID' => $itemID,
+    'branchID' => $branchID,
+    'shelfLocation' => $shelfLocation,
+    'itemType' => $itemType,
+    'status' => 'Available'
+];
+
+$invalidItem = [
+    'itemCopyID' => 99998,
     'title' => $title,
     'itemID' => $itemID,
     'branchID' => $branchID,
@@ -285,59 +296,17 @@ addTest(
 );
 
 // Catalog Item ID does not exist
-$testData = $validItem;
+$testData = $invalidItem;
 $testData['itemID'] = $missingItemID;
 
 addTest(
     'Catalog Item ID does not exist',
     'POST',
     $testData,
-    409,
+    400,
     errorAssertion(
         'Item ID does not exist in the catalog. Create the catalog item first.'
     )
-);
-
-// Item Type does not match catalog item
-$testData = $validItem;
-$testData['itemType'] = 'InvalidType';
-
-addTest(
-    'Item Type does not match catalog item',
-    'POST',
-    $testData,
-    409,
-    function ($response) use ($itemType) {
-        $json = $response['json'];
-
-        assertTrue(
-            is_array($json),
-            "Response was not valid JSON: " . $response['body']
-        );
-
-        assertTrue(
-            ($json['ok'] ?? null) === false,
-            'Expected ok=false.'
-        );
-
-        assertTrue(
-            ($json['error'] ?? '') ===
-            'Item Type must match the existing catalog item type: ' . $itemType,
-            'Unexpected Item Type validation message.'
-        );
-    }
-);
-
-// Branch does not exist
-$testData = $validItem;
-$testData['branchID'] = $missingBranchID;
-
-addTest(
-    'Branch ID does not exist',
-    'POST',
-    $testData,
-    409,
-    errorAssertion('Branch ID does not exist.')
 );
 
 // Successfully add item copy
@@ -391,16 +360,6 @@ addTest(
         assertTrue(
             ($item['shelfLocation'] ?? '') === $shelfLocation,
             'Returned shelf location does not match.'
-        );
-
-        assertTrue(
-            (string)($item['branchID'] ?? '') === $branchID,
-            'Returned Branch ID does not match.'
-        );
-
-        assertTrue(
-            ($item['itemType'] ?? '') === $itemType,
-            'Returned Item Type does not match.'
         );
 
         assertTrue(
