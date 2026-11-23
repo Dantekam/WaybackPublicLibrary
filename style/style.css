@@ -14,6 +14,7 @@
   --color-primary: #45286b;
   --color-accent: #6b4528;
   --radius: 3px;
+  --shadow-card: 0 3px 12px rgba(27, 74, 47, .06);
 
   /* ---- Additional tokens derived from the palette above ---- */
   --color-primary-dark: #2d174a;  /* hover / focus / accent borders */
@@ -269,6 +270,7 @@ button:disabled {
   border: 1px solid var(--color-border);
   border-top: 5px solid var(--color-primary-dark);
   border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
 }
 .confirmation-card h3 {
   margin-top: 0;
@@ -285,6 +287,7 @@ button:disabled {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
 }
 .table-heading {
   padding: 15px;
@@ -545,7 +548,7 @@ tbody tr:hover {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 8px;
-  box-shadow: 0 3px 12px rgba(27, 74, 47, .05);
+  box-shadow: var(--shadow-card);
 }
 
 .dashboard-filter-bar h2 {
@@ -615,7 +618,7 @@ tbody tr:hover {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 8px;
-  box-shadow: 0 3px 12px rgba(27, 74, 47, .05);
+  box-shadow: var(--shadow-card);
 }
 
 .dashboard-panel-heading {
@@ -691,7 +694,7 @@ tbody tr:hover {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 8px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, .24);
+  box-shadow: var(--shadow-card);
 }
 
 .dashboard-report-dialog::backdrop {
@@ -765,9 +768,10 @@ tbody tr:hover {
 .dashboard-mini-chart {
   min-width: 0;
   padding: 14px 10px 8px;
-  background: var(--color-page);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 6px;
+  box-shadow: var(--shadow-card);
 }
 
 .dashboard-mini-chart h3 {
@@ -935,9 +939,10 @@ tbody tr:hover {
   gap: 10px;
   margin-top: 22px;
   padding: 18px 20px;
-  background: #e8efe9;
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 8px;
+  box-shadow: var(--shadow-card);
 }
 
 .dashboard-actions h2 {
@@ -1051,6 +1056,7 @@ tbody tr:hover {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
 }
 
 .patron-search-panel {
@@ -1075,6 +1081,7 @@ tbody tr:hover {
   align-items: end;
   gap: 12px;
   max-width: 620px;
+  box-shadow: var(--shadow-card);
 }
 
 .patron-search-form > div {
@@ -1093,6 +1100,7 @@ tbody tr:hover {
   padding: 9px 11px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
 }
 
 .patron-search-form button {
@@ -1132,6 +1140,7 @@ tbody tr:hover {
   padding: 6px 10px;
   border: 1px solid transparent;
   border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
   font-size: 13px;
   font-weight: 700;
 }
@@ -1275,6 +1284,7 @@ tbody tr:hover {
     border: 1px solid #e2e2e2;
     border-radius: .5rem;
     padding: 1.25rem 1.5rem;
+    box-shadow: var(--shadow-card);
 }
 
 .patron-search-form {
@@ -1599,4 +1609,21 @@ tbody tr:hover {
     .patron-form-actions .patron-action-button {
         width: 100%;
     }
+}
+.search-tabs {
+    display: flex;
+    gap: .5rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #d6d0c4;
+}
+.search-tab {
+    padding: .6rem 1rem;
+    text-decoration: none;
+    color: #5a5348;
+    border-bottom: 2px solid transparent;
+    font-weight: 600;
+}
+.search-tab.is-active {
+    color: #1f3d2b;
+    border-bottom-color: #1f3d2b;
 }
