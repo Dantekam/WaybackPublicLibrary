@@ -7,75 +7,7 @@
     <title>Reservations - Wayback Public Library</title>
     <link rel="stylesheet" href="style/style.css">
     <script src="js/reservations.js" defer></script>
-    <style>
-        .reservation-wrap {
-            max-width: 1250px;
-            margin: 0 auto;
-            padding: 24px;
-        }
-        .reservation-panel {
-            background: white;
-            color: #222;
-            padding: 22px;
-            margin: 20px 0;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-        }
-        .reservation-grid {
-            display: grid;
-            grid-template-columns:
-                repeat(auto-fit, minmax(180px, 1fr));
-            gap: 16px;
-        }
-        .reservation-grid label {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-        .reservation-grid input,
-        .reservation-grid select {
-            padding: 10px;
-            width: 100%;
-            box-sizing: border-box;
-        }
-        .reservation-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 18px;
-        }
-        .reservation-actions button {
-            padding: 10px 16px;
-            cursor: pointer;
-        }
-        .reservation-table-wrap {
-            overflow-x: auto;
-        }
-        .reservation-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .reservation-table th,
-        .reservation-table td {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        .reservation-table th {
-            background: #f1f3f5;
-        }
-        .reservation-table tbody tr:hover {
-            background: #f8f9fa;
-        }
-        .reservation-message {
-            margin: 12px 0;
-            min-height: 24px;
-        }
-        .reservation-note {
-            color: #555;
-            font-size: .9rem;
-        }
-    </style>
+
 </head>
 <body>
 <header class="site-header">

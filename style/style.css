@@ -13,7 +13,7 @@
   --color-subtle: #F4EEE9;
   --color-primary: #45286b;
   --color-accent: #6b4528;
-  --radius: 3px;
+  --radius: 12px;
   --shadow-card: 0 3px 12px rgba(27, 74, 47, .06);
 
   /* ---- Additional tokens derived from the palette above ---- */
@@ -210,7 +210,12 @@ button:disabled {
 }
 
 /* ---------- Lookup / input rows ---------- */
-.lookup-container { display: flex; gap: 25px; margin-bottom: 25px; }
+.lookup-container { 
+  display: flex; 
+  gap: 25px; 
+  margin-bottom: 25px;
+  box-shadow: var(--shadow-card);
+ }
 
 .lookup-card {
   flex: 1;
@@ -218,6 +223,7 @@ button:disabled {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
 }
 .lookup-card h3 { margin-top: 0; color: var(--color-primary); }
 .lookup-card label { display: block; margin-bottom: 8px; font-weight: bold; }
@@ -242,6 +248,7 @@ button:disabled {
   background: var(--color-subtle);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
 }
 .result-box p { margin: 7px 0; }
 
@@ -257,6 +264,7 @@ button:disabled {
   border: 1px solid var(--color-border);
   border-left: 5px solid var(--color-primary-dark);
   border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
 }
 .checkout-summary h3 { margin-top: 0; color: var(--color-primary); }
 .checkout-summary p { margin: 7px 0; }
@@ -435,6 +443,7 @@ tbody tr:hover {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
 }
 .library-panel h3 { margin-top: 0; color: var(--color-primary); }
 
@@ -1076,7 +1085,7 @@ tbody tr:hover {
   margin: 0;
 }
 
-.patron-search-form {
+.patron-search-, .statusSearchForm {
   display: flex;
   align-items: end;
   gap: 12px;
@@ -1626,4 +1635,72 @@ tbody tr:hover {
 .search-tab.is-active {
     color: #1f3d2b;
     border-bottom-color: #1f3d2b;
+}
+.reservation-wrap {
+            max-width: 1250px;
+            margin: 0 auto;
+            padding: 24px;
+}
+.reservation-panel, .status-panel {
+    background: white;
+    color: #222;
+    padding: 22px;
+    margin: 20px 0;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: var(--shadow-card);
+}
+.reservation-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+}
+.reservation-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.reservation-grid input,
+.reservation-grid select {
+    padding: 10px;
+    width: 100%;
+    box-sizing: border-box;
+}
+.reservation-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+}
+.reservation-actions button {
+    padding: 10px 16px;
+    cursor: pointer;
+}
+.reservation-table-wrap {
+    overflow-x: auto;
+}
+.reservation-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.reservation-table th,
+.reservation-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+.reservation-table th {
+    background: #f1f3f5;
+}
+.reservation-table tbody tr:hover {
+    background: #f8f9fa;
+}
+.reservation-message {
+    margin: 12px 0;
+    min-height: 24px;
+}
+.reservation-note {
+    color: #555;
+    font-size: .9rem;
 }

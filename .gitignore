@@ -6,3 +6,10 @@
 /deprecated
 /php
 
+# linting and formatting
+./node_modules
+package-lock.json
+package.json
+eslint.config.js
+
+

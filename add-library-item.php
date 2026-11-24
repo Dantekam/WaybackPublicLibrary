@@ -6,36 +6,6 @@
     <title>Add Library Item - Wayback Public Library</title>
     <link rel="stylesheet" href="style/style.css">
     <script src="js/libraryItem.js" defer></script>
-    <style>
-        .author-entry {
-            display: grid;
-            grid-template-columns: 1fr 1fr auto;
-            align-items: end;
-            gap: 12px;
-            margin: 12px 0;
-        }
-        .author-entry label {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-        .author-entry input { width: 100%; }
-        .author-entry button { padding: 10px; }
-        .item-help { color: #555; margin: 10px 0; }
-        .item-feedback { min-height: 24px; margin: 15px 0; }
-        .item-feedback.error { color: #b42318; }
-        .item-feedback.success { color: #176b38; }
-        .item-actions {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            align-items: center;
-            margin-top: 14px;
-        }
-        @media (max-width: 650px) {
-            .author-entry { grid-template-columns: 1fr; }
-        }
-    </style>
 </head>
 <body>
 <header class="site-header">
