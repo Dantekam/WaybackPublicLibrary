@@ -10,12 +10,16 @@ function respond($data, $code = 200) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    respond(['ok' => false, 'error' => 'POST required.'], 405);
+    respond([
+        'ok' => false,
+        'error' => 'POST required.'
+    ], 405);
 }
 
 $raw = $_POST['itemCopyID'] ?? '';
 
-if (!is_string($raw) || !ctype_digit($raw) ||
+if (!is_string($raw) ||
+    !ctype_digit($raw) ||
     (int)$raw <= 0) {
     respond([
         'ok' => false,
@@ -28,9 +32,13 @@ $copyID = (int)$raw;
 try {
     $pdo->beginTransaction();
 
+    // Lock the item copy and find its catalog item type.
     $stmt = $pdo->prepare(
-        'SELECT ic.ItemCopyID, ic.Status,
-                i.ItemType, i.ItemTypeID
+        'SELECT
+            ic.ItemCopyID,
+            ic.Status,
+            i.ItemType,
+            i.ItemTypeID
          FROM Item_Copy ic
          JOIN ITEM i ON i.ItemID = ic.ItemID
          WHERE ic.ItemCopyID = ?
@@ -45,12 +53,15 @@ try {
         );
     }
 
+    // Lock the active checkout.
     $stmt = $pdo->prepare(
-        'SELECT c.CheckOutID, c.PatronID,
-                c.DueDate,
-                COALESCE(c.RenewalCount, 0) AS renewalCount,
-                CONCAT(p.FirstName, " ", p.LastName)
-                    AS patronName
+        'SELECT
+            c.CheckOutID,
+            c.PatronID,
+            c.DueDate,
+            COALESCE(c.RenewalCount, 0) AS renewalCount,
+            CONCAT(p.FirstName, " ", p.LastName)
+                AS patronName
          FROM CheckOut c
          JOIN Patron p ON p.PatronID = c.PatronID
          WHERE c.ItemCopyID = ?
@@ -68,27 +79,28 @@ try {
 
     $loan = $loans[0];
 
+    // Outstanding fines prevent renewal.
     $stmt = $pdo->prepare(
         'SELECT COALESCE(
             SUM(GREATEST(
                 COALESCE(Amount, 0) -
                 COALESCE(AmountPaid, 0), 0
             )), 0)
-        FROM Fine
-        WHERE PatronID = ?'
+         FROM Fine
+         WHERE PatronID = ?'
     );
     $stmt->execute([(int)$loan['PatronID']]);
 
-    $outstandingFines = (float)$stmt->fetchColumn();
-
-    if ($outstandingFines > 0) {
+    if ((float)$stmt->fetchColumn() > 0) {
         throw new DomainException(
             'Renewal denied: patron has outstanding fines.'
         );
     }
 
+    // Maximum two renewals per checkout.
+    $renewalCount = (int)$loan['renewalCount'];
 
-    if ((int)$loan['renewalCount'] >= 2) {
+    if ($renewalCount >= 2) {
         throw new DomainException(
             'Two-renewal limit reached.'
         );
@@ -101,23 +113,30 @@ try {
     }
 
     $today = new DateTimeImmutable('today');
+
     $currentDue = new DateTimeImmutable(
         substr($loan['DueDate'], 0, 10)
     );
 
+    // Do not renew overdue items.
     if ($currentDue < $today) {
         throw new DomainException(
             'Overdue items cannot be renewed.'
         );
     }
 
+    // Do not renew if another patron has an active hold.
     $stmt = $pdo->prepare(
-        "SELECT COUNT(*) FROM Reservation
+        "SELECT COUNT(*)
+         FROM Reservation
          WHERE ItemCopyID = ?
            AND PatronID <> ?
            AND Status IN ('Pending', 'Ready')"
     );
-    $stmt->execute([$copyID, $loan['PatronID']]);
+    $stmt->execute([
+        $copyID,
+        (int)$loan['PatronID']
+    ]);
 
     if ((int)$stmt->fetchColumn() > 0) {
         throw new DomainException(
@@ -125,6 +144,8 @@ try {
         );
     }
 
+    // Find the configured loan duration by item type.
+    // ItemTypeID takes priority over legacy text matching.
     $stmt = $pdo->prepare(
         'SELECT LoanPeriodDays
          FROM Item_Type
@@ -132,7 +153,10 @@ try {
             OR LOWER(TRIM(TypeName)) =
                LOWER(TRIM(?))
          ORDER BY
-           CASE WHEN ItemTypeID = ? THEN 0 ELSE 1 END
+            CASE
+                WHEN ItemTypeID = ? THEN 0
+                ELSE 1
+            END
          LIMIT 1'
     );
     $stmt->execute([
@@ -149,9 +173,32 @@ try {
         );
     }
 
-    $newDue = $currentDue
-        ->modify('+' . $days . ' days')
-        ->format('Y-m-d');
+    /*
+     * NON-COMPOUNDING RENEWAL
+     *
+     * Calculate the renewal due date from today,
+     * not from the existing due date.
+     *
+     * Preserve the existing due date if it is later,
+     * so an early renewal never shortens a loan.
+     *
+     * Example: 14-day book loan
+     * Checkout Nov 10 -> Nov 24
+     * Renew Nov 10 -> Nov 24
+     * Renew Nov 10 -> Nov 24
+     *
+     * Renewal count still increases each time.
+     */
+
+    $renewalDue = $today->modify(
+        '+' . $days . ' days'
+    );
+
+    $newDueDate = $renewalDue > $currentDue
+        ? $renewalDue
+        : $currentDue;
+
+    $newDue = $newDueDate->format('Y-m-d');
 
     $stmt = $pdo->prepare(
         'UPDATE CheckOut
@@ -162,7 +209,7 @@ try {
     );
     $stmt->execute([
         $newDue,
-        $loan['CheckOutID']
+        (int)$loan['CheckOutID']
     ]);
 
     if ($stmt->rowCount() !== 1) {
@@ -180,21 +227,32 @@ try {
             'checkoutID' => (int)$loan['CheckOutID'],
             'itemCopyID' => $copyID,
             'patronName' => $loan['patronName'],
+            'itemType' => $copy['ItemType'],
             'previousDueDate' => $loan['DueDate'],
             'dueDate' => $newDue,
-            'renewalCount' =>
-                (int)$loan['renewalCount'] + 1,
+            'renewalCount' => $renewalCount + 1,
+            'loanPeriodDays' => $days,
             'status' => 'CheckedOut'
         ]
     ]);
 
 } catch (DomainException $e) {
-    if ($pdo->inTransaction()) $pdo->rollBack();
-    respond(['ok' => false, 'error' => $e->getMessage()], 409);
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+
+    respond([
+        'ok' => false,
+        'error' => $e->getMessage()
+    ], 409);
 
 } catch (Throwable $e) {
-    if ($pdo->inTransaction()) $pdo->rollBack();
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+
     error_log('renewItem: ' . $e->getMessage());
+
     respond([
         'ok' => false,
         'error' => 'Could not renew checkout.'
