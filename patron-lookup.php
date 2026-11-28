@@ -20,19 +20,21 @@ try {
     if (ctype_digit($q)) {
         $stmt = $pdo->prepare(
             'SELECT PatronID, FirstName, LastName, MembershipExpiration,
-                    MembershipRenewalCount, email, phone_number, HomeBranchID
-             FROM Patron
-             WHERE PatronID = ?'
+                    MembershipRenewalCount, MembershipLastRenewedOn,
+                    email, phone_number, HomeBranchID
+            FROM Patron
+            WHERE PatronID = ?'
         );
         $stmt->execute([(int)$q]);
     } else {
         $stmt = $pdo->prepare(
             'SELECT PatronID, FirstName, LastName, MembershipExpiration,
-                    MembershipRenewalCount, email, phone_number, HomeBranchID
-             FROM Patron
-             WHERE CONCAT(FirstName, " ", LastName) LIKE ?
-             ORDER BY LastName, FirstName
-             LIMIT 1'
+                    MembershipRenewalCount, MembershipLastRenewedOn,
+                    email, phone_number, HomeBranchID
+            FROM Patron
+            WHERE CONCAT(FirstName, " ", LastName) LIKE ?
+            ORDER BY LastName, FirstName
+            LIMIT 1'
         );
         $stmt->execute(['%' . $q . '%']);
     }
@@ -144,6 +146,7 @@ try {
             'homeBranch'   => $branchName,
             'expiration'   => $p['MembershipExpiration'],
             'renewalCount' => (int)$p['MembershipRenewalCount'],
+            'lastRenewedOn' => $p['MembershipLastRenewedOn'], 
             'totalBalance' => round($totalBalance, 2),
             'fines'        => $fines,
             'checkouts'    => $checkouts,

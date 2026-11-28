@@ -37,6 +37,7 @@ $yearStart = $currentMonthStart->modify('-11 months');
 $olderPeriodStart = $currentMonthStart->modify('-23 months');
 $periodEnd = $today->modify('+1 day');
 $allTimeStart = $today;
+$excludedInventoryStatuses = ['retired', 'unresolved'];
 
 try {
     $firstActivityDate = $pdo->query(
@@ -403,6 +404,11 @@ try {
         $statusKey = strtolower(
             preg_replace('/\s+/', '', trim($itemStatus['Status']))
         );
+
+        if (in_array($statusKey, $excludedInventoryStatuses, true)) {
+            continue;
+        }
+
         if (!isset($combinedStatuses[$statusKey])) {
             $combinedStatuses[$statusKey] = [
                 'Status' => $itemStatus['Status'],
@@ -418,8 +424,6 @@ try {
         'checkedout' => 'Checked out',
         'processing' => 'Processing',
         'reserved' => 'Reserved',
-        'unavailable' => 'Unavailable',
-        'unresolved' => 'Unresolved'
     ];
     foreach ($combinedStatuses as $statusKey => &$itemStatus) {
         $itemStatus['Status'] = $statusLabels[$statusKey]

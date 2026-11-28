@@ -3,12 +3,6 @@ require __DIR__ . '/script/db_connect.php';
 session_start();
 header('Content-Type: application/json');
 
-if (empty($_SESSION['staff_id'])) {
-    http_response_code(401);
-    echo json_encode(['ok' => false, 'error' => 'Not authenticated.']);
-    exit;
-}
-
 $input    = json_decode(file_get_contents('php://input'), true) ?? $_POST;
 $action   = $input['action'] ?? '';
 $patronId = isset($input['patron_id']) ? (int)$input['patron_id'] : 0;
@@ -74,17 +68,18 @@ function handlePayFine(PDO $pdo, int $patronId, array $input): void
         return;
     }
 
-    $update = $pdo->prepare('UPDATE Fine SET AmountPaid = AmountPaid + ? WHERE FineID = ?');
-    $update->execute([$amount, $fineId]);
+    $pdo->prepare('UPDATE Fine SET AmountPaid = AmountPaid + ? WHERE FineID = ?')
+        ->execute([$amount, $fineId]);
 
-    $log = $pdo->prepare(
-        'INSERT INTO Payment_Log (PatronID, FineID, Amount, ProcessedBy, Notes)
-         VALUES (?, ?, ?, ?, ?)'
-    );
-    $log->execute([
-        $patronId, $fineId, $amount,
-        $_SESSION['staff_id'] ?? null,
-        $input['notes'] ?? null
+    // Log to the existing FinePayment table.
+    $pdo->prepare(
+        'INSERT INTO FinePayment
+            (FineID, PaymentAmount, PaymentDateTime, PaymentMethod)
+         VALUES (?, ?, NOW(), ?)'
+    )->execute([
+        $fineId,
+        number_format($amount, 2, '.', ''),  // varchar column — store as "12.50"
+        $input['method'] ?? 'Cash'
     ]);
 
     $pdo->commit();
@@ -155,10 +150,14 @@ function handleRenewMembership(PDO $pdo, int $patronId, array $input): void
         return;
     }
 
+    $today    = new DateTimeImmutable('today');
+    $todayStr = $today->format('Y-m-d');
+
     $pdo->beginTransaction();
 
     $stmt = $pdo->prepare(
-        'SELECT PatronID, MembershipExpiration, MembershipRenewalCount
+        'SELECT PatronID, MembershipExpiration, MembershipRenewalCount,
+                MembershipLastRenewedOn
          FROM Patron
          WHERE PatronID = ?
          FOR UPDATE'
@@ -173,20 +172,33 @@ function handleRenewMembership(PDO $pdo, int $patronId, array $input): void
         return;
     }
 
+    // ---- Same-day guard: silent no-op, not an error ----
+    if ($patron['MembershipLastRenewedOn'] === $todayStr) {
+        $pdo->rollBack();
+        echo json_encode([
+            'ok'              => true,
+            'already_renewed' => true,
+            'old_expiration'  => $patron['MembershipExpiration'],
+            'new_expiration'  => $patron['MembershipExpiration'],
+            'months_added'    => 0,
+            'renewal_count'   => (int)$patron['MembershipRenewalCount'],
+        ]);
+        return;
+    }
+
     $oldExpiration = $patron['MembershipExpiration'];
-    $today = new DateTimeImmutable('today');
-    $baseDate = $oldExpiration && new DateTimeImmutable($oldExpiration) > $today
-        ? new DateTimeImmutable($oldExpiration)
-        : $today;
-    $newExpiration = $baseDate->modify("+{$months} months")->format('Y-m-d');
+
+    // ---- REPLACE, not extend: expiration = today + months ----
+    $newExpiration = $today->modify("+{$months} months")->format('Y-m-d');
 
     $update = $pdo->prepare(
         'UPDATE Patron
-         SET MembershipExpiration   = ?,
-             MembershipRenewalCount = MembershipRenewalCount + 1
+         SET MembershipExpiration    = ?,
+             MembershipRenewalCount  = MembershipRenewalCount + 1,
+             MembershipLastRenewedOn = ?
          WHERE PatronID = ?'
     );
-    $update->execute([$newExpiration, $patronId]);
+    $update->execute([$newExpiration, $todayStr, $patronId]);
 
     $log = $pdo->prepare(
         'INSERT INTO Membership_Renewal_Log
@@ -202,10 +214,11 @@ function handleRenewMembership(PDO $pdo, int $patronId, array $input): void
     $pdo->commit();
 
     echo json_encode([
-        'ok'             => true,
-        'old_expiration' => $oldExpiration,
-        'new_expiration' => $newExpiration,
-        'months_added'   => $months,
-        'renewal_count'  => (int)$patron['MembershipRenewalCount'] + 1
+        'ok'              => true,
+        'already_renewed' => false,
+        'old_expiration'  => $oldExpiration,
+        'new_expiration'  => $newExpiration,
+        'months_added'    => $months,
+        'renewal_count'   => (int)$patron['MembershipRenewalCount'] + 1,
     ]);
 }

@@ -196,31 +196,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $patronId > 0) {
             }
             $pdo->commit();
             $message = sprintf('Collected $%.2f across %d fine(s).', $total, count($rows));
-        } elseif ($action === 'renew_membership') {
-            $months = max(1, min(60, (int)($_POST['months'] ?? 12)));
-
-            $pdo->beginTransaction();
-            $stmt = $pdo->prepare(
-                'SELECT MembershipExpiration FROM Patron
-                 WHERE PatronID = ? FOR UPDATE'
-            );
-            $stmt->execute([$patronId]);
-            $old = $stmt->fetchColumn();
-
-            $today = new DateTimeImmutable('today');
-            $base  = $old && new DateTimeImmutable($old) > $today
-                ? new DateTimeImmutable($old)
-                : $today;
-            $new = $base->modify("+{$months} months")->format('Y-m-d');
-
-            $pdo->prepare(
-                'UPDATE Patron
-                 SET MembershipExpiration = ?,
-                     MembershipRenewalCount = MembershipRenewalCount + 1
-                 WHERE PatronID = ?'
-            )->execute([$new, $patronId]);
-            $pdo->commit();
-            $message = "Membership now expires {$new}.";
         }
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
@@ -342,7 +317,7 @@ $itemTabUrl   = '?' . http_build_query(array_merge($tabBase, ['type' => 'item'])
             </a>
         </nav>
 
-        <form class="patron-search-form" method="get">
+        <form class="patron-search-form" id="patron-search-form" method="get">
             <input type="hidden" name="type" value="<?= $esc($type) ?>">
 
             <div>
@@ -634,13 +609,10 @@ $itemTabUrl   = '?' . http_build_query(array_merge($tabBase, ['type' => 'item'])
                     Renewed <?= (int)$patron['MembershipRenewalCount'] ?> time(s)
                 </span>
             </div>
-            <form method="post" class="patron-membership-actions">
-                <input type="hidden" name="type" value="patron">
-                <input type="hidden" name="q" value="<?= $esc($q) ?>">
-                <input type="hidden" name="action" value="renew_membership">
+            <form class="patron-membership-actions" onsubmit="return false;">
                 <label>
                     Renew for
-                    <select name="months">
+                    <select id="patron-renew-months" name="months">
                         <option value="1">1 month</option>
                         <option value="3">3 months</option>
                         <option value="6">6 months</option>
@@ -648,14 +620,25 @@ $itemTabUrl   = '?' . http_build_query(array_merge($tabBase, ['type' => 'item'])
                         <option value="24">24 months</option>
                     </select>
                 </label>
-                <button type="submit" class="patron-action-button">
+                <button type="button"
+                        id="renew-membership-btn"
+                        class="patron-action-button"
+                        data-patron-id="<?= (int)$patron['PatronID'] ?>"
+                        data-last-renewed-on="<?= htmlspecialchars(
+                            $patron['MembershipLastRenewedOn']
+                                ? substr($patron['MembershipLastRenewedOn'], 0, 10)
+                                : '',
+                            ENT_QUOTES
+                        ) ?>">
                     <?= $expired ? 'Re-establish membership' : 'Renew membership' ?>
                 </button>
             </form>
+            <p class="patron-message" id="patron-action-message" role="status" aria-live="polite"></p>
         </section>
     </section>
     <?php endif; ?>
 </main>
 <footer class="site-footer" aria-hidden="true"></footer>
+<script src="js/patron.js"></script>
 </body>
 </html>
